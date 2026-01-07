@@ -1,26 +1,149 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-trade-bg: #020617;
+  /* Slate 950 */
+  --color-trade-surface: #0f172a;
+  /* Slate 900 */
+  --color-trade-surface-hover: #1e293b;
+  /* Slate 800 */
+  --color-trade-border: #1e293b;
+  /* Slate 800 */
+
+  --color-trade-primary: #6366f1;
+  /* Indigo 500 */
+  --color-trade-primary-foreground: #eef2ff;
+
+  --color-trade-success: #10b981;
+  /* Emerald 500 */
+  --color-trade-success-dim: #064e3b;
+
+  --color-trade-loss: #f43f5e;
+  /* Rose 500 */
+  --color-trade-loss-dim: #881337;
+
+  --color-trade-text: #94a3b8;
+  /* Slate 400 */
+  --color-trade-text-primary: #f8fafc;
+  /* Slate 50 */
+  --color-trade-text-secondary: #64748b;
+  /* Slate 500 */
+  --color-trade-text-muted: #475569;
+  /* Slate 600 */
+
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: light;
+    /* Light Mode Palette */
+    --color-trade-bg: #ffffff;
+    --color-trade-surface: #f8fafc;
+    /* Slate 50 */
+    --color-trade-surface-hover: #e2e8f0;
+    /* Slate 200 */
+    --color-trade-border: #cbd5e1;
+    /* Slate 300 */
+
+    --color-trade-primary: #4f46e5;
+    /* Indigo 600 */
+    --color-trade-primary-foreground: #ffffff;
+
+    --color-trade-success: #059669;
+    /* Emerald 600 */
+    --color-trade-success-dim: #d1fae5;
+    /* Emerald 100 */
+
+    --color-trade-loss: #e11d48;
+    /* Rose 600 */
+    --color-trade-loss-dim: #ffe4e6;
+    /* Rose 100 */
+
+    --color-trade-text: #334155;
+    /* Slate 700 */
+    --color-trade-text-primary: #0f172a;
+    /* Slate 900 */
+    --color-trade-text-secondary: #64748b;
+    /* Slate 500 */
+    --color-trade-text-muted: #94a3b8;
+    /* Slate 400 */
+
+    --background: var(--color-trade-bg);
+    --foreground: var(--color-trade-text);
+  }
+
+  .dark {
+    color-scheme: dark;
+    /* Dark Mode Palette (Original) */
+    --color-trade-bg: #020617;
+    --color-trade-surface: #0f172a;
+    --color-trade-surface-hover: #1e293b;
+    --color-trade-border: #1e293b;
+
+    --color-trade-primary: #6366f1;
+    --color-trade-primary-foreground: #eef2ff;
+
+    --color-trade-success: #10b981;
+    --color-trade-success-dim: #064e3b;
+
+    --color-trade-loss: #f43f5e;
+    --color-trade-loss-dim: #881337;
+
+    --color-trade-text: #94a3b8;
+    --color-trade-text-primary: #f8fafc;
+    --color-trade-text-secondary: #64748b;
+    --color-trade-text-muted: #475569;
+
+    --background: var(--color-trade-bg);
+    --foreground: var(--color-trade-text);
+  }
+
+  body {
+    background-color: var(--color-trade-bg);
+    color: var(--color-trade-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .glass-panel {
+    @apply bg-trade-surface/80 backdrop-blur-md border border-trade-border;
+  }
+
+  .glass-header {
+    @apply bg-trade-bg/80 backdrop-blur-md border-b border-trade-border;
+  }
+
+  .text-number {
+    @apply font-mono tracking-tight;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-trade-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-trade-surface-hover);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Input Cleanup */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }

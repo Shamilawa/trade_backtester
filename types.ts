@@ -17,6 +17,8 @@ export interface TradeInput {
   entryPrice: number;
   stopLossPrice: number;
   initialRiskPercent: number;
+  riskCashAmount?: number;
+  riskMode: 'percent' | 'cash';
   accountBalance: number;
   asset: AssetType;
 }
@@ -41,8 +43,17 @@ export interface CalculationResult {
   finalAccountBalance: number;
 }
 
+export interface Session {
+  id: string;
+  name: string;
+  initialBalance: number;
+  currency: string;
+  createdAt: string; // ISO string
+}
+
 export interface TradeLog {
   id: string;
+  sessionId: string; // Creates 1-to-many relationship
   date: string; // ISO string
   input: TradeInput;
   results: CalculationResult;

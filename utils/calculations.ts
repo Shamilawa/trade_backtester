@@ -18,7 +18,12 @@ export function calculateTrade(input: TradeInput, exits: Exit[]): CalculationRes
     const config = ASSET_CONFIGS[asset];
 
     // 1. Calculate Initial Risk Amount ($)
-    const initialRiskAmount = accountBalance * (initialRiskPercent / 100);
+    let initialRiskAmount = 0;
+    if (input.riskMode === 'cash' && input.riskCashAmount) {
+        initialRiskAmount = input.riskCashAmount;
+    } else {
+        initialRiskAmount = accountBalance * (initialRiskPercent / 100);
+    }
 
     // 2. Calculate SL Pips
     // We use absolute difference because SL is always a distance from entry

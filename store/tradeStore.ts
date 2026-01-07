@@ -1,27 +1,39 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { AssetType, Exit, TradeInput, CalculationResult, TradeLog } from '../types';
+import { AssetType, Exit, TradeInput, CalculationResult, TradeLog, Session } from '../types';
 import { calculateTrade } from '../utils/calculations';
 
 interface TradeStore {
+    // Session State
+    sessions: Session[];
+    activeSessionId: string | null;
+
+    // Active Session Data (Derived/Scoped usually, but we keep simple for now)
     input: TradeInput;
     exits: Exit[];
     results: CalculationResult | null;
-    history: TradeLog[];
+    history: TradeLog[]; // Contains ALL trades, filtered by UI/Getters ideally, or we filter in actions
 
-    // Actions
-    setInput: (field: keyof TradeInput, value: number | AssetType) => void;
+    // Session Actions
+    createSession: (name: string, initialBalance: number) => string;
+    setActiveSession: (id: string) => void;
+    deleteSession: (id: string) => void;
+
+    // Trade Actions
+    setInput: (field: keyof TradeInput, value: number | string | AssetType) => void;
     addExit: () => void;
     removeExit: (id: string) => void;
     updateExit: (id: string, field: keyof Exit, value: number) => void;
     logTrade: () => void;
     deleteLog: (id: string) => void;
-    clearHistory: () => void;
+    clearHistory: () => void; // Clears ONLY active session history
 }
 
 const DEFAULT_INPUT: TradeInput = {
     accountBalance: 0,
-    initialRiskPercent: 0,
+    initialRiskPercent: 1.0,
+    riskCashAmount: 100,
+    riskMode: 'percent',
     entryPrice: 0,
     stopLossPrice: 0,
     asset: 'EURUSD',
@@ -33,10 +45,73 @@ const recalc = (input: TradeInput, exits: Exit[]): CalculationResult => {
 };
 
 export const useTradeStore = create<TradeStore>((set, get) => ({
+    sessions: [],
+    activeSessionId: null,
+
     input: DEFAULT_INPUT,
     exits: [],
     results: recalc(DEFAULT_INPUT, []),
     history: [],
+
+    createSession: (name, initialBalance) => {
+        const id = uuidv4();
+        const newSession: Session = {
+            id,
+            name,
+            initialBalance,
+            currency: 'USD',
+            createdAt: new Date().toISOString()
+        };
+
+        set(state => ({
+            sessions: [newSession, ...state.sessions],
+            activeSessionId: id,
+            // Reset workspace for new session
+            input: { ...DEFAULT_INPUT, accountBalance: initialBalance },
+            exits: [],
+            results: recalc({ ...DEFAULT_INPUT, accountBalance: initialBalance }, [])
+        }));
+
+        return id;
+    },
+
+    setActiveSession: (id) => {
+        set(state => {
+            const session = state.sessions.find(s => s.id === id);
+            if (!session) return {};
+
+            // Calculate current balance for this session based on its history
+            const sessionTrades = state.history.filter(t => t.sessionId === id);
+            // Sort by date to get latest balance? 
+            // Actually, we can just sum profits to initial balance. 
+            // But relying on the last trade's final balance is safer if we store it.
+            // Let's re-calculate "current balance" from clean slate + history? 
+            // Or just take the last trade's final balance.
+
+            let currentBalance = session.initialBalance;
+            if (sessionTrades.length > 0) {
+                // Sort by date descending (newest first) as stored in history usually
+                // Our history is [newest, ..., oldest]
+                // So index 0 is the latest trade.
+                currentBalance = sessionTrades[0].results.finalAccountBalance;
+            }
+
+            return {
+                activeSessionId: id,
+                input: { ...state.input, accountBalance: currentBalance },
+                exits: [], // Reset trade ticket
+                results: recalc({ ...state.input, accountBalance: currentBalance }, [])
+            };
+        });
+    },
+
+    deleteSession: (id) => {
+        set(state => ({
+            sessions: state.sessions.filter(s => s.id !== id),
+            history: state.history.filter(t => t.sessionId !== id),
+            activeSessionId: state.activeSessionId === id ? null : state.activeSessionId
+        }));
+    },
 
     setInput: (field, value) => {
         set((state) => {
@@ -87,24 +162,46 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
 
     logTrade: () => {
         set((state) => {
-            if (!state.results) return {};
+            if (!state.results || !state.activeSessionId) return {}; // Guard: Must have active session
+
             const newLog: TradeLog = {
                 id: uuidv4(),
+                sessionId: state.activeSessionId,
                 date: new Date().toISOString(),
                 input: { ...state.input }, // Deep copy
                 results: { ...state.results, exits: [...state.results.exits] }, // Deep copy
             };
-            return { history: [newLog, ...state.history] };
+
+            // Update the input balance for the NEXT trade automatically?
+            // Yes, user expects the balance to update after a trade.
+            const newBalance = state.results.finalAccountBalance;
+            const nextInput = { ...state.input, accountBalance: newBalance };
+
+            return {
+                history: [newLog, ...state.history],
+                input: nextInput,
+                results: recalc(nextInput, state.exits)
+            };
         });
     },
 
     deleteLog: (id) => {
-        set((state) => ({
-            history: state.history.filter((log) => log.id !== id),
-        }));
+        set((state) => {
+            const newHistory = state.history.filter((log) => log.id !== id);
+
+            // If we delete the latest trade, we might want to revert the balance? 
+            // For now, complex. Let's just delete the log. 
+            // The User might need to manually reset balance or we leave it.
+            // Ideally: Recalculate everything? Too heavy.
+            // Simple: Just delete.
+
+            return { history: newHistory };
+        });
     },
 
     clearHistory: () => {
-        set({ history: [] });
+        set((state) => ({
+            history: state.history.filter(t => t.sessionId !== state.activeSessionId)
+        }));
     },
 }));

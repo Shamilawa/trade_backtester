@@ -3,100 +3,156 @@
 import React from 'react';
 import { useTradeStore } from '@/store/tradeStore';
 import { Card, CardContent, CardHeader, CardTitle, Button } from './ui/common';
-import { Trash2, History, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { Trash2, History, TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function TradeHistoryTable() {
-    const { history, deleteLog, clearHistory } = useTradeStore();
+    const { history, deleteLog, clearHistory, activeSessionId } = useTradeStore();
 
+    // Filter history for active session
+    const sessionHistory = history.filter(log => log.sessionId === activeSessionId);
 
+    // Calculate Stats for Header
+    const totalTrades = sessionHistory.length;
+    const totalProfit = sessionHistory.reduce((acc, trade) => acc + trade.results.totalNetProfit, 0);
+    const winRate = totalTrades > 0
+        ? (sessionHistory.filter(t => t.results.totalNetProfit > 0).length / totalTrades) * 100
+        : 0;
 
     return (
-        <Card className="w-full max-w-6xl mx-auto mt-8 border-slate-200">
-            <CardHeader className="flex flex-row items-center justify-between bg-slate-50 border-b border-slate-100 pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                    <History className="w-5 h-5 text-slate-500" />
-                    Trade History
-                </CardTitle>
-                <Button
-                    onClick={clearHistory}
-                    className="h-8 text-xs bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-red-600"
-                >
-                    Clear History
-                </Button>
-            </CardHeader>
-            <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-white border-b border-slate-100 text-slate-500">
+        <div className="flex flex-col h-full bg-trade-bg">
+            {/* Stats Header (Optional if not in main layout) */}
+            {/* <div className="grid grid-cols-4 gap-4 mb-4">
+                <Card className="p-3 bg-trade-surface border-trade-border">
+                    <div className="text-[10px] uppercase text-trade-text-muted">Net P/L</div>
+                    <div className={cn("text-xl font-mono font-bold", totalProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
+                        ${totalProfit.toFixed(2)}
+                    </div>
+                </Card>
+             </div> */}
+
+            <Card className="flex-1 flex flex-col border border-trade-border bg-trade-surface/20 shadow-none rounded-none md:rounded-lg overflow-hidden backdrop-blur-sm">
+                <div className="flex items-center justify-between p-3 border-b border-trade-border bg-slate-900/50 backdrop-blur-md">
+                    <div className="flex items-center gap-2">
+                        <History className="w-4 h-4 text-trade-primary" />
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Trade Log</span>
+                        <span className="text-xs text-trade-text-muted px-2 py-0.5 bg-trade-bg rounded-md border border-trade-border font-mono">
+                            {totalTrades}
+                        </span>
+                    </div>
+
+                    {sessionHistory.length > 0 && (
+                        <div className="flex items-center gap-4">
+                            <div className="hidden md:flex items-center gap-4 text-xs">
+                                <div>
+                                    <span className="text-trade-text-muted mr-1">Net P/L:</span>
+                                    <span className={cn("font-mono font-medium", totalProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
+                                        ${totalProfit.toFixed(2)}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-trade-text-muted mr-1">Win Rate:</span>
+                                    <span className="font-mono text-trade-text-primary">{winRate.toFixed(1)}%</span>
+                                </div>
+                            </div>
+                            <Button
+                                onClick={clearHistory}
+                                className="h-6 text-[10px] bg-transparent border border-trade-border text-trade-text-muted hover:text-trade-loss hover:border-trade-loss hover:bg-trade-loss/10 px-2"
+                            >
+                                Clear
+                            </Button>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex-1 overflow-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 z-10 bg-slate-900 border-b border-trade-border text-xs text-trade-text-secondary uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-3 font-medium">Date</th>
-                                <th className="px-6 py-3 font-medium">Asset</th>
-                                <th className="px-6 py-3 font-medium">Direction</th>
-                                <th className="px-6 py-3 font-medium">Lots</th>
-                                <th className="px-6 py-3 font-medium">Net Profit</th>
-                                <th className="px-6 py-3 font-medium text-right">Balance</th>
-                                <th className="px-6 py-3 font-medium text-right">Action</th>
+                                <th className="px-4 py-2 font-medium w-32">Time</th>
+                                <th className="px-4 py-2 font-medium w-24">Asset</th>
+                                <th className="px-4 py-2 font-medium w-20 text-center">Side</th>
+                                <th className="px-4 py-2 font-medium text-right w-24">Vol</th>
+                                <th className="px-4 py-2 font-medium text-right w-24">Entry</th>
+                                <th className="px-4 py-2 font-medium text-right w-24">Net P/L</th>
+                                <th className="px-4 py-2 font-medium text-right w-32">Balance</th>
+                                <th className="px-4 py-2 font-medium w-10"></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                            {history.length === 0 ? (
+                        <tbody className="divide-y divide-trade-border bg-trade-bg/50">
+                            {sessionHistory.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 text-sm border-dashed border-slate-200">
-                                        No trades logged yet. Click "New Trade" to start logging your positions.
+                                    <td colSpan={8} className="px-6 py-12 text-center">
+                                        <div className="flex flex-col items-center justify-center gap-2 text-trade-text-muted">
+                                            <History className="w-8 h-8 opacity-20" />
+                                            <p className="text-sm">No trades executed.</p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
-                                history.map((log) => {
+                                sessionHistory.map((log) => {
                                     const isProfit = log.results.totalNetProfit >= 0;
                                     const isLong = log.input.entryPrice > log.input.stopLossPrice;
 
                                     return (
-                                        <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
-                                                <div className="flex items-center gap-2">
-                                                    <Clock className="w-3 h-3 text-slate-400" />
-                                                    {new Date(log.date).toLocaleString(undefined, {
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                        hour: '2-digit',
-                                                        minute: '2-digit'
-                                                    })}
-                                                </div>
+                                        <tr key={log.id} className="group hover:bg-trade-surface-hover/50 transition-colors text-xs text-trade-text-primary">
+                                            {/* Time */}
+                                            <td className="px-4 py-2 whitespace-nowrap text-trade-text-muted font-mono">
+                                                {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                                <span className="text-[10px] ml-1 opacity-50">
+                                                    {new Date(log.date).getDate()}
+                                                </span>
                                             </td>
-                                            <td className="px-6 py-4 font-medium text-slate-900">{log.input.asset}</td>
-                                            <td className="px-6 py-4">
+
+                                            {/* Asset */}
+                                            <td className="px-4 py-2 font-semibold tracking-wide">
+                                                {log.input.asset}
+                                            </td>
+
+                                            {/* Side */}
+                                            <td className="px-4 py-2 text-center">
                                                 <span className={cn(
-                                                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border",
+                                                    "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] font-medium uppercase text-[10px] border",
                                                     isLong
-                                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                                        : "bg-rose-50 text-rose-700 border-rose-200"
+                                                        ? "bg-trade-success/10 text-trade-success border-trade-success/20"
+                                                        : "bg-trade-loss/10 text-trade-loss border-trade-loss/20"
                                                 )}>
-                                                    {isLong ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                                                     {isLong ? 'Buy' : 'Sell'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-slate-600">
+
+                                            {/* Volume */}
+                                            <td className="px-4 py-2 text-right font-mono text-trade-text-secondary">
                                                 {log.results.initialLots}
                                             </td>
-                                            <td className="px-6 py-4">
+
+                                            {/* Entry Price */}
+                                            <td className="px-4 py-2 text-right font-mono text-trade-text-secondary">
+                                                {log.input.entryPrice}
+                                            </td>
+
+                                            {/* Net P/L */}
+                                            <td className="px-4 py-2 text-right font-mono font-medium">
                                                 <span className={cn(
-                                                    "font-semibold",
-                                                    isProfit ? "text-green-600" : "text-red-600"
+                                                    isProfit ? "text-trade-success" : "text-trade-loss"
                                                 )}>
-                                                    {isProfit ? '+' : ''}${log.results.totalNetProfit.toFixed(2)}
+                                                    {isProfit ? '+' : ''}{log.results.totalNetProfit.toFixed(2)}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-right font-medium text-slate-700">
-                                                ${log.results.finalAccountBalance.toFixed(2)}
+
+                                            {/* Balance */}
+                                            <td className="px-4 py-2 text-right font-mono text-trade-text-muted">
+                                                {log.results.finalAccountBalance.toFixed(2)}
                                             </td>
-                                            <td className="px-6 py-4 text-right">
+
+                                            {/* Actions */}
+                                            <td className="px-4 py-2 text-right">
                                                 <button
                                                     onClick={() => deleteLog(log.id)}
-                                                    className="text-slate-400 hover:text-red-600 transition-colors p-1"
+                                                    className="opacity-0 group-hover:opacity-100 text-trade-text-muted hover:text-trade-loss transition-opacity p-1"
                                                     title="Delete Log"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
                                             </td>
                                         </tr>
@@ -105,7 +161,7 @@ export default function TradeHistoryTable() {
                         </tbody>
                     </table>
                 </div>
-            </CardContent>
-        </Card>
+            </Card>
+        </div>
     );
 }
