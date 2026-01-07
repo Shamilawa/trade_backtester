@@ -46,8 +46,21 @@ export default function TradeTicket() {
                     <div className="bg-trade-primary/20 p-1.5 rounded text-trade-primary">
                         <ArrowDownUp size={16} />
                     </div>
-                    <div>
-                        <div className="font-bold text-sm text-trade-text-primary leading-none">{input.asset}</div>
+                    <div className="flex flex-col">
+                        <div className="relative flex items-center">
+                            <select
+                                value={input.asset}
+                                onChange={(e) => setInput('asset', e.target.value)}
+                                className="appearance-none bg-transparent font-bold text-sm text-trade-text-primary focus:outline-none cursor-pointer pr-4 hover:text-trade-primary transition-colors z-10"
+                            >
+                                {Object.keys(ASSET_CONFIGS).map((asset) => (
+                                    <option key={asset} value={asset} className="bg-trade-bg text-trade-text-primary">
+                                        {asset}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-trade-text-muted pointer-events-none" />
+                        </div>
                         <div className="text-[10px] text-trade-text-muted mt-0.5">USD Margin</div>
                     </div>
                 </div>

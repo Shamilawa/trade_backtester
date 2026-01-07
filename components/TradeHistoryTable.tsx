@@ -32,7 +32,7 @@ export default function TradeHistoryTable() {
              </div> */}
 
             <Card className="flex-1 flex flex-col border border-trade-border bg-trade-surface/20 shadow-none rounded-none md:rounded-lg overflow-hidden backdrop-blur-sm">
-                <div className="flex items-center justify-between p-3 border-b border-trade-border bg-slate-900/50 backdrop-blur-md">
+                <div className="flex items-center justify-between p-3 border-b border-trade-border bg-trade-surface/50 backdrop-blur-md">
                     <div className="flex items-center gap-2">
                         <History className="w-4 h-4 text-trade-primary" />
                         <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Trade Log</span>
@@ -67,7 +67,7 @@ export default function TradeHistoryTable() {
 
                 <div className="flex-1 overflow-auto">
                     <table className="w-full text-left border-collapse">
-                        <thead className="sticky top-0 z-10 bg-slate-900 border-b border-trade-border text-xs text-trade-text-secondary uppercase tracking-wider">
+                        <thead className="sticky top-0 z-10 bg-trade-surface border-b border-trade-border text-xs text-trade-text-secondary uppercase tracking-wider">
                             <tr>
                                 <th className="px-4 py-2 font-medium w-32">Time</th>
                                 <th className="px-4 py-2 font-medium w-24">Asset</th>
