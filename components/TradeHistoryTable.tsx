@@ -5,9 +5,11 @@ import { useTradeStore } from '@/store/tradeStore';
 import { Card, CardContent, CardHeader, CardTitle, Button } from './ui/common';
 import { Trash2, History, TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import AnalyticsCards from './AnalyticsCards';
 
 export default function TradeHistoryTable() {
-    const { history, deleteLog, clearHistory, activeSessionId } = useTradeStore();
+    const { history, deleteLog, clearHistory, activeSessionId, sessions } = useTradeStore();
+    const activeSession = sessions.find(s => s.id === activeSessionId);
     const [assetFilter, setAssetFilter] = React.useState<string>('ALL');
     const [typeFilter, setTypeFilter] = React.useState<string>('ALL');
 
@@ -49,6 +51,9 @@ export default function TradeHistoryTable() {
 
     return (
         <div className="flex flex-col h-full bg-trade-bg">
+            {/* Analytics Section */}
+            <AnalyticsCards history={sessionHistory} session={activeSession} />
+
             <Card className="flex-1 flex flex-col border border-trade-border bg-trade-surface/20 shadow-none rounded-none md:rounded-lg overflow-hidden backdrop-blur-sm">
                 <div className="flex items-center justify-between p-3 border-b border-trade-border bg-trade-surface/50 backdrop-blur-md">
                     <div className="flex items-center gap-4">
