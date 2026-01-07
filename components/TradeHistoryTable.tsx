@@ -138,6 +138,7 @@ export default function TradeHistoryTable() {
                                 <th className="px-4 py-2 font-medium text-center w-24">Entry</th>
                                 <th className="px-4 py-2 font-medium text-center w-16">R Gain</th>
                                 <th className="px-4 py-2 font-medium text-center w-16">% Gain</th>
+                                <th className="px-4 py-2 font-medium text-center w-16">Commisions</th>
                                 <th className="px-4 py-2 font-medium text-center w-24">Net P/L</th>
                                 <th className="px-4 py-2 font-medium text-right w-32">Balance</th>
                                 <th className="px-4 py-2 font-medium w-10"></th>
@@ -275,18 +276,25 @@ export default function TradeHistoryTable() {
                                                     </TooltipProvider>
                                                 </td>
 
+                                                {/* commissions */}
+                                                <td className="px-4 py-2 text-center font-mono font-medium">
+                                                    <span className='text-trade-loss'>
+                                                        ${log.results.exits.reduce((acc, e) => acc + e.commission, 0).toFixed(2)}
+                                                    </span>
+                                                </td>
+
                                                 {/* Net P/L */}
                                                 <td className="px-4 py-2 text-center font-mono font-medium">
                                                     <span className={cn(
                                                         isProfit ? "text-trade-success" : "text-trade-loss"
                                                     )}>
-                                                        {isProfit ? '+' : ''}{log.results.totalNetProfit.toFixed(2)}
+                                                        ${isProfit ? '+' : ''}{log.results.totalNetProfit.toFixed(2)}
                                                     </span>
                                                 </td>
 
                                                 {/* Balance */}
                                                 <td className="px-4 py-2 text-right font-mono text-trade-text-muted">
-                                                    {log.results.finalAccountBalance.toFixed(2)}
+                                                    ${log.results.finalAccountBalance.toFixed(2)}
                                                 </td>
 
                                                 {/* Actions */}
