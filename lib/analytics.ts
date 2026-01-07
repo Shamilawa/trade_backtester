@@ -14,6 +14,8 @@ export interface AnalyticsMetrics {
     expectancy: number; // Avg return per trade
     largestWin: number;
     largestLoss: number;
+    sharpeRatio: number;
+    riskRewardRatio: number;
 }
 
 export interface ChartDataPoint {
@@ -31,14 +33,15 @@ export function filterLogs(logs: HistoryLog[], assetFilter: string | null): Hist
         if (log.type === 'TRADE') {
             return log.input.asset === assetFilter;
         }
-        return true; // Keep transfers to maintain balance logic correct, or maybe filter them? 
-        // Logic decision: If we filter by asset, we probably only care about TRADES for that asset. 
-        // But for equity curve, we need balance. 
-        // If we filter, we might just show P&L curve for that asset instead of Account Balance.
-        // For simplicity: When filtering by asset, we might recount "Virtual Balance" starting from 0 or session start.
-        // Let's stick to simple filtering: If asset selected, only include those trades for metrics. 
-        // For equity curve, it might be weird if we include transfers.
+        return true; 
     });
+}
+
+function calculateStandardDeviation(values: number[], mean: number): number {
+    if (values.length === 0) return 0;
+    const squareDiffs = values.map(value => Math.pow(value - mean, 2));
+    const avgSquareDiff = squareDiffs.reduce((sum, value) => sum + value, 0) / values.length;
+    return Math.sqrt(avgSquareDiff);
 }
 
 export function calculateMetrics(logs: HistoryLog[]): AnalyticsMetrics {
@@ -60,48 +63,53 @@ export function calculateMetrics(logs: HistoryLog[]): AnalyticsMetrics {
             expectancy: 0,
             largestWin: 0,
             largestLoss: 0,
+            sharpeRatio: 0,
+            riskRewardRatio: 0,
         };
     }
 
     let grossWin = 0;
     let grossLoss = 0;
     let winningTrades = 0;
-    let losingTrades = 0; // Breakeven could be its own or lumped. usually < 0 or <= 0.
+    let losingTrades = 0;
     let largestWin = -Infinity;
-    let largestLoss = Infinity; // Using Infinity so first negative number is smaller
+    let largestLoss = Infinity;
     let netProfit = 0;
+    const tradeProfits: number[] = [];
 
     trades.forEach(trade => {
         const profit = trade.results.totalNetProfit;
         netProfit += profit;
+        tradeProfits.push(profit);
 
         if (profit > 0) {
             grossWin += profit;
             winningTrades++;
             if (profit > largestWin) largestWin = profit;
         } else {
-            grossLoss += Math.abs(profit); // loss is absolute for calculation
-            losingTrades++; // Counting 0 as loss or neutral? Usually neutral, but for winrate, it's NOT a win.
+            grossLoss += Math.abs(profit);
+            losingTrades++;
             if (profit < largestLoss) largestLoss = profit;
         }
     });
 
     const winRate = (winningTrades / totalTrades) * 100;
-    const profitFactor = grossLoss === 0 ? grossWin : grossWin / grossLoss; // If 0 loss, infinite PF.
+    const profitFactor = grossLoss === 0 ? grossWin : grossWin / grossLoss;
     const averageWin = winningTrades > 0 ? grossWin / winningTrades : 0;
-    const averageLoss = losingTrades > 0 ? grossLoss / losingTrades : 0; // This will be positive number representing amount
+    const averageLoss = losingTrades > 0 ? grossLoss / losingTrades : 0;
     const expectancy = netProfit / totalTrades;
+    const riskRewardRatio = averageLoss > 0 ? averageWin / averageLoss : averageWin;
+
+    // Sharpe Ratio Calculation (simplified based on trade returns)
+    // Sharpe = (Mean Return - RiskFreeRate) / StdDev of Returns
+    // Assuming RiskFreeRate = 0 for simplified trade analysis
+    const stdDev = calculateStandardDeviation(tradeProfits, expectancy);
+    const sharpeRatio = stdDev === 0 ? 0 : expectancy / stdDev;
 
     // DD Calculation
-    // We need to simulate the running balance to find true DD across the filtered set.
-    // If filtered, this represents the performance of JUST this subset of trades.
-    let runningBalance = 0; // Relative to start of filter
+    let runningBalance = 0;
     let peak = 0;
     let maxDD = 0;
-    let maxDDPercent = 0;
-    // Note: MaxDD % usually requires absolute account balance. 
-    // If this is a subset, % might be misleading unless we know the account balance at that time.
-    // We will do a simple relative DD calculation.
 
     trades.forEach(trade => {
         runningBalance += trade.results.totalNetProfit;
@@ -115,7 +123,7 @@ export function calculateMetrics(logs: HistoryLog[]): AnalyticsMetrics {
         winRate,
         profitFactor,
         maxDrawdown: maxDD,
-        maxDrawdownPercent: 0, // Placeholder, calculating true % requires full chronological context
+        maxDrawdownPercent: 0, // Placeholder
         totalTrades,
         winningTrades,
         losingTrades,
@@ -124,6 +132,8 @@ export function calculateMetrics(logs: HistoryLog[]): AnalyticsMetrics {
         expectancy,
         largestWin: largestWin === -Infinity ? 0 : largestWin,
         largestLoss: largestLoss === Infinity ? 0 : largestLoss,
+        sharpeRatio,
+        riskRewardRatio,
     };
 }
 

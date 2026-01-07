@@ -42,6 +42,7 @@ export default function TradeTicket() {
                 await saveLog(state.activeSessionId, latestLog);
             }
             setHasSubmitted(false);
+            setTradeDirection('long'); // Reset direction
         }
     };
 

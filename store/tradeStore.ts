@@ -181,15 +181,22 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
                 results: { ...state.results, exits: [...state.results.exits] }, // Deep copy
             };
 
-            // Update the input balance for the NEXT trade automatically?
-            // Yes, user expects the balance to update after a trade.
+            // Update the input balance for the NEXT trade automatically
             const newBalance = state.results.finalAccountBalance;
-            const nextInput = { ...state.input, accountBalance: newBalance };
+
+            // Reset trade-specific fields, preserve configuration and Date
+            const nextInput = {
+                ...state.input,
+                accountBalance: newBalance,
+                entryPrice: 0,
+                stopLossPrice: 0,
+            };
 
             return {
                 history: [newLog, ...state.history],
                 input: nextInput,
-                results: recalc(nextInput, state.exits)
+                exits: [], // Clear partial exits
+                results: recalc(nextInput, [])
             };
         });
     },

@@ -1,21 +1,15 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Session, HistoryLog } from '@/types';
+import { Session, HistoryLog, TradeLog } from '@/types';
 import { calculateEquityCurve, calculateMetrics, filterLogs } from '@/lib/analytics';
 import { KeyMetrics } from './KeyMetrics';
-import { EquityCurveChart, DrawdownChart } from './Charts';
-import { Button } from '@/components/ui/common'; // Assuming generic button exists, or use standard
-import { Filter, Calendar } from 'lucide-react';
-
-
-// Check if select exists, if not I'll fall back to standard select for now to avoid complexity or check file struct.
-// I see 'ui' dir in components list steps ago. Let's assume standard HTML select if unsure, but I will try to use a simple custom UI if possible or just standard for MVP.
-// The user has 'ui' folder. Let's look at it next step just to be sure, but for now I will write this assuming basic UI or HTML elements to be safe and robust.
+import { EquityCurveChart, DrawdownChart, WinLossDistributionChart } from './Charts';
+import { AnalyticsHeader } from './AnalyticsHeader';
 
 export default function AnalyticsClient({ session, initialLogs }: { session: Session, initialLogs: HistoryLog[] }) {
     const [assetFilter, setAssetFilter] = useState<string>('ALL');
-    const [dateRange, setDateRange] = useState<string>('ALL'); // Placeholder for future date logic
+    const [dateRange, setDateRange] = useState<string>('ALL');
 
     const filteredLogs = useMemo(() => {
         return filterLogs(initialLogs, assetFilter === 'ALL' ? null : assetFilter);
@@ -24,60 +18,62 @@ export default function AnalyticsClient({ session, initialLogs }: { session: Ses
     const metrics = useMemo(() => calculateMetrics(filteredLogs), [filteredLogs]);
     const equityCurve = useMemo(() => calculateEquityCurve(filteredLogs, session.initialBalance), [filteredLogs, session.initialBalance]);
 
+    const winLossDistribution = useMemo(() => {
+        const trades = filteredLogs.filter(l => l.type === 'TRADE') as TradeLog[];
+        if (trades.length === 0) return [];
+
+        const bins = [
+            { label: '< -500', min: -Infinity, max: -500, count: 0, fill: '#881337' },
+            { label: '-500:-100', min: -500, max: -100, count: 0, fill: '#be123c' },
+            { label: '-100:0', min: -100, max: 0, count: 0, fill: '#f43f5e' },
+            { label: '0:100', min: 0, max: 100, count: 0, fill: '#10b981' },
+            { label: '100:500', min: 100, max: 500, count: 0, fill: '#059669' },
+            { label: '> 500', min: 500, max: Infinity, count: 0, fill: '#047857' },
+        ];
+
+        trades.forEach(t => {
+            const p = t.results.totalNetProfit;
+            const bin = bins.find(b => p >= b.min && p < b.max);
+            if (bin) bin.count++;
+        });
+
+        return bins.map(b => ({ range: b.label, count: b.count, fill: b.fill }));
+    }, [filteredLogs]);
+
     return (
-        <div className="flex flex-col h-full bg-trade-background text-trade-text-primary p-6 space-y-6 overflow-y-auto">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-                    <p className="text-trade-text-muted text-sm">
-                        Performance insights for session: <span className="text-trade-primary">{session.name}</span>
-                    </p>
-                </div>
+        <div className="flex flex-col h-full bg-trade-bg">
+            {/* Main Container - matching Trade Table wrapper style */}
+            <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto space-y-6">
 
-                {/* Filters */}
-                <div className="flex items-center gap-2 bg-trade-surface p-1 rounded-md border border-trade-border">
-                    <div className="px-3 py-1 text-xs font-medium text-trade-text-secondary uppercase tracking-wider flex items-center gap-1">
-                        <Filter className="w-3 h-3" /> Filter
+                {/* Header & Controls */}
+                <AnalyticsHeader
+                    sessionName={session.name}
+                    assetFilter={assetFilter}
+                    setAssetFilter={setAssetFilter}
+                    dateRange={dateRange}
+                    setDateRange={setDateRange}
+                    tradeCount={filteredLogs.length}
+                />
+
+                {/* Key Metrics - Grid Strip */}
+                <KeyMetrics metrics={metrics} />
+
+                {/* Charts Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="md:col-span-2">
+                        <EquityCurveChart data={equityCurve} />
                     </div>
-                    <select
-                        className="bg-trade-background border border-trade-border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-trade-primary"
-                        value={assetFilter}
-                        onChange={(e) => setAssetFilter(e.target.value)}
-                    >
-                        <option value="ALL">All Symbols</option>
-                        <option value="EURUSD">EURUSD</option>
-                        <option value="XAUUSD">XAUUSD</option>
-                    </select>
-                    {/* Placeholder for Date Filter */}
-                    <select
-                        className="bg-trade-background border border-trade-border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-trade-primary"
-                        value={dateRange}
-                        onChange={(e) => setDateRange(e.target.value)}
-                        disabled
-                    >
-                        <option value="ALL">All Time</option>
-                        <option value="MONTH">This Month</option>
-                    </select>
+                    <div>
+                        <DrawdownChart data={equityCurve} />
+                    </div>
+                    <div>
+                        <WinLossDistributionChart data={winLossDistribution} />
+                    </div>
                 </div>
-            </div>
 
-            {/* Key Metrics */}
-            <KeyMetrics metrics={metrics} />
-
-            {/* Charts Section */}
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                    <EquityCurveChart data={equityCurve} />
+                <div className="text-center text-[10px] text-trade-text-muted/50 font-mono py-4 border-t border-trade-border">
+                    ANALYTICS MODULE // {new Date().toISOString()} // {session.id}
                 </div>
-                <div>
-                    <DrawdownChart data={equityCurve} />
-                </div>
-            </div>
-
-            <div className="text-center text-xs text-trade-text-muted pt-8">
-                Generated at {new Date().toLocaleString()} • {filteredLogs.length} Records Processed
             </div>
         </div>
     );
