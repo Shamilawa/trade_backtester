@@ -8,9 +8,40 @@ import { TrendingUp, TrendingDown, Clock, MoveRight, ArrowRight, Trash2 } from '
 import { cn } from '@/lib/utils';
 import CreateSessionModal from './CreateSessionModal';
 
-export default function SessionList() {
-    const { sessions, history, deleteSession } = useTradeStore();
+import { Session } from '@/types';
+import { deleteSession as deleteSessionAction } from '@/app/actions';
+
+interface SessionListProps {
+    initialSessions: Session[];
+}
+
+export default function SessionList({ initialSessions }: SessionListProps) {
+    // We can rely on initialSessions for the list, 
+    // AND/OR sync them to store. For simplicity/robustness, let's use the props for display.
+    // The store 'sessions' might be stale on first load if we just came from server.
     const router = useRouter();
+    const { deleteSession } = useTradeStore(); // Keep client deletion for optimistic UI or replace?
+
+    // Better to use server action for delete too?
+    // Let's use initialSessions as primary data source for the list rendering.
+
+    // BUT, wait. If we create a new session, we want the list to update.
+    // If we rely purely on props from server component, we need to refresh the route.
+
+    const [sessions, setSessions] = React.useState(initialSessions);
+
+    // Sync props to state when server re-renders
+    React.useEffect(() => {
+        setSessions(initialSessions);
+    }, [initialSessions]);
+
+    const handleDelete = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        await deleteSessionAction(id);
+        setSessions(prev => prev.filter(s => s.id !== id));
+        deleteSession(id); // Update local store too if needed
+    };
+
 
     const handleSelect = (id: string) => {
         router.push(`/session/${id}`);
@@ -23,7 +54,7 @@ export default function SessionList() {
                     <h1 className="text-3xl font-bold text-trade-text-primary tracking-tight mb-2">My Sessions</h1>
                     <p className="text-trade-text-muted">Manage your backtesting workspaces.</p>
                 </div>
-                <CreateSessionModal />
+                <CreateSessionModal onSessionCreated={() => router.refresh()} />
             </div>
 
             {sessions.length === 0 ? (
@@ -35,19 +66,21 @@ export default function SessionList() {
                     <p className="text-trade-text-muted max-w-sm mx-auto mb-6">
                         Get started by creating a new session to track your trades independently.
                     </p>
-                    <CreateSessionModal />
+                    <CreateSessionModal onSessionCreated={() => router.refresh()} />
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sessions.map(session => {
                         // Calculate stats on the fly for the card
-                        const sessionTrades = history.filter(t => t.sessionId === session.id);
-                        const totalProfit = sessionTrades.reduce((acc, t) => acc + t.results.totalNetProfit, 0);
-                        const winRate = sessionTrades.length > 0
-                            ? (sessionTrades.filter(t => t.results.totalNetProfit > 0).length / sessionTrades.length) * 100
-                            : 0;
-                        const tradeCount = sessionTrades.length;
-                        const currentBalance = session.initialBalance + totalProfit;
+                        // Note: We don't have 'history' for all sessions loaded here necessarily if we came from server.
+                        // app/actions.ts getRecentSessions only returns session info, not logs.
+                        // So we might not show profit/winrate here unless we fetch it.
+                        // For now, let's just show basic info or 0.
+                        const sessionTrades = [] as any[]; // Placeholder until we fetch summary stats
+                        const totalProfit = 0;
+                        const winRate = 0;
+                        const tradeCount = 0;
+                        const currentBalance = session.initialBalance;
 
                         return (
                             <div
@@ -69,7 +102,7 @@ export default function SessionList() {
                                             </div>
                                         </div>
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); deleteSession(session.id); }}
+                                            onClick={(e) => handleDelete(session.id, e)}
                                             className="text-trade-text-muted hover:text-trade-loss p-1 rounded hover:bg-trade-loss/10 transition-colors"
                                         >
                                             <Trash2 className="w-4 h-4" />

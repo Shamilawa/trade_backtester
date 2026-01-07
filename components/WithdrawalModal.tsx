@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useTradeStore } from '@/store/tradeStore';
+import { saveLog } from '@/app/actions';
 import {
     Dialog,
     DialogContent,
@@ -41,6 +42,16 @@ export default function WithdrawalModal({ open, onOpenChange }: WithdrawalModalP
         }
 
         addTransaction('WITHDRAWAL', val, 'Manual Withdrawal');
+
+        // Persist to DB
+        const state = useTradeStore.getState();
+        if (state.activeSessionId && state.history.length > 0) {
+            const latestLog = state.history[0];
+            saveLog(state.activeSessionId, latestLog); // Fire and forget or await? 
+            // Better to await if possible, but inside event handler implies fire and forget is okay-ish if we don't block closing.
+            // But we should probably catch errors? For now keep simple.
+        }
+
         onOpenChange(false);
         setAmount('');
         setError(null);

@@ -28,6 +28,7 @@ interface TradeStore {
     addTransaction: (type: 'WITHDRAWAL' | 'DEPOSIT', amount: number, note?: string) => void;
     deleteLog: (id: string) => void;
     clearHistory: () => void; // Clears ONLY active session history
+    initializeSession: (session: Session, history: HistoryLog[]) => void;
 }
 
 const DEFAULT_INPUT: TradeInput = {
@@ -243,5 +244,49 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
         set((state) => ({
             history: state.history.filter(t => t.sessionId !== state.activeSessionId)
         }));
+    },
+
+    initializeSession: (session, history) => {
+        set(state => {
+            // Check if we already have this session active to avoid re-initializing unnecessarily if simpler
+            // But usually we just overwrite.
+
+            // Calculate current balance from history (latest log)
+            let currentBalance = session.initialBalance;
+            if (history.length > 0) {
+                const latestLog = history[0]; // Assuming history is passed sorted desc
+                if (latestLog.type === 'TRADE') {
+                    currentBalance = latestLog.results.finalAccountBalance;
+                } else {
+                    currentBalance = latestLog.newBalance;
+                }
+            }
+
+            // Merge this session into sessions array if not present
+            const existingSessionIndex = state.sessions.findIndex(s => s.id === session.id);
+            let newSessions = [...state.sessions];
+            if (existingSessionIndex >= 0) {
+                newSessions[existingSessionIndex] = session;
+            } else {
+                newSessions = [session, ...state.sessions];
+            }
+
+            return {
+                sessions: newSessions,
+                activeSessionId: session.id,
+                activeSessionId: session.id,
+                // Wait, if we have other sessions' history in state.history, we should keep them?
+                // The store seems to keep ALL history in one array? 
+                // Line 15: "history: HistoryLog[]; // Contains ALL trades"
+                // So we should merge or filter?
+                // "filter(t => t.sessionId !== session.id)" then add new history.
+                history: [
+                    ...state.history.filter(h => h.sessionId !== session.id),
+                    ...history
+                ],
+                input: { ...state.input, accountBalance: currentBalance }, // Reset input balance
+                results: recalc({ ...state.input, accountBalance: currentBalance }, [])
+            };
+        });
     },
 }));

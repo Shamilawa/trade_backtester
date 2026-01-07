@@ -1,4 +1,5 @@
 import { useTradeStore } from '@/store/tradeStore';
+import { saveLog } from '@/app/actions';
 import { Button, Card, Input, Label } from './ui/common';
 import { Plus, Trash2, Save, X, ChevronDown, ChevronUp, AlertCircle, DollarSign, Percent, ArrowDownUp, Settings, GripHorizontal } from 'lucide-react';
 import { ASSET_CONFIGS, PIP_MULTIPLIERS } from '@/utils/calculations';
@@ -29,10 +30,16 @@ export default function TradeTicket() {
     // Combined Validation
     const isFormValid = isValidEntry && isValidSL && isValidRisk && isDirectionValid && isValidLots;
 
-    const handleLogTrade = () => {
+    const handleLogTrade = async () => {
         setHasSubmitted(true);
         if (isFormValid) {
             logTrade();
+            // Get the latest log from store state
+            const state = useTradeStore.getState();
+            if (state.activeSessionId && state.history.length > 0) {
+                const latestLog = state.history[0];
+                await saveLog(state.activeSessionId, latestLog);
+            }
             setHasSubmitted(false);
         }
     };

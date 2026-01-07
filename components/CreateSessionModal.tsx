@@ -5,20 +5,43 @@ import { useTradeStore } from '@/store/tradeStore';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, Button, Input, Label } from './ui/common';
 import { Plus, Briefcase, DollarSign } from 'lucide-react';
 
-export default function CreateSessionModal() {
-    const { createSession } = useTradeStore();
+import { createSession as createSessionAction } from '@/app/actions';
+import { useRouter } from 'next/navigation';
+
+export default function CreateSessionModal({ onSessionCreated }: { onSessionCreated?: () => void }) {
+    const { createSession } = useTradeStore(); // Keep for store sync if needed, but we rely on server now?
+    // Actually, if we navigate to the new session, the page load will init the store.
+    // So we don't strictly need to update the client store here if we redirect.
+
     const [open, setOpen] = useState(false);
     const [name, setName] = useState('');
     const [balance, setBalance] = useState(10000);
+    const router = useRouter();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || balance <= 0) return;
 
-        createSession(name, balance);
+        // server action
+        const newId = await createSessionAction(name, balance);
+
+        // Update local store just in case (optional, but good for consistency/optimistic)
+        // createSession(name, balance); // This generates a NEW ID locally which is WRONG. 
+        // We should NOT call store.createSession unless we can force the ID.
+        // The store logic uses uuidv4(). We should probably avoid using store.createSession here.
+
         setOpen(false);
         setName('');
         setBalance(10000);
+
+        if (onSessionCreated) {
+            onSessionCreated();
+        } else {
+            // Default behavior if no callback? Maybe redirect immediately?
+            // router.push(`/session/${newId}`); // If we want to auto-open
+        }
+
+        router.refresh(); // Refresh server components to show up in list
     };
 
     return (
