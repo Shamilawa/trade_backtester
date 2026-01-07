@@ -2,10 +2,16 @@
 
 import React from 'react';
 import { LayoutDashboard, Settings, LineChart } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname, useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/common';
 
 export default function Sidebar() {
+    const pathname = usePathname();
+    const params = useParams();
+    const sessionId = params?.id as string;
+
     return (
         <aside className="w-[60px] md:w-[240px] flex-shrink-0 border-r border-trade-border bg-trade-surface/50 backdrop-blur-md flex flex-col h-full z-20 transition-all duration-300">
             {/* Brand / Logo Area */}
@@ -21,13 +27,14 @@ export default function Sidebar() {
                 <NavItem
                     icon={<LayoutDashboard className="w-5 h-5" />}
                     label="Trade Log"
-                    isActive
+                    href={`/session/${sessionId}`}
+                    isActive={pathname === `/session/${sessionId}`}
                 />
                 <NavItem
                     icon={<LineChart className="w-5 h-5" />}
                     label="Analytics"
-                    isActive={false} // Placeholder
-                    disabled
+                    href={`/session/${sessionId}/analytics`}
+                    isActive={pathname === `/session/${sessionId}/analytics`}
                 />
             </nav>
 
@@ -43,7 +50,27 @@ export default function Sidebar() {
     );
 }
 
-function NavItem({ icon, label, isActive, disabled }: { icon: React.ReactNode, label: string, isActive?: boolean, disabled?: boolean }) {
+function NavItem({ icon, label, isActive, disabled, href }: { icon: React.ReactNode, label: string, isActive?: boolean, disabled?: boolean, href?: string }) {
+    if (href && !disabled) {
+        return (
+            <Link
+                href={href}
+                className={cn(
+                    "w-full flex items-center justify-center md:justify-start px-2 md:px-3 py-2 rounded-[4px] transition-colors group",
+                    isActive
+                        ? "bg-trade-surface-hover text-trade-primary"
+                        : "text-trade-text-secondary hover:bg-trade-surface-hover/50 hover:text-trade-text-primary",
+                    disabled && "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-trade-text-secondary"
+                )}
+            >
+                <div className={cn("shrink-0", isActive ? "text-trade-primary" : "text-trade-text-muted group-hover:text-trade-text-primary")}>
+                    {icon}
+                </div>
+                <span className="hidden md:block ml-3 text-sm font-medium">{label}</span>
+                {isActive && <div className="hidden md:block ml-auto w-1.5 h-1.5 rounded-full bg-trade-primary" />}
+            </Link>
+        );
+    }
     return (
         <button
             disabled={disabled}

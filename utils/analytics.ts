@@ -13,6 +13,8 @@ export interface AnalyticsMetrics {
     totalTrades: number;
     winningTrades: number;
     losingTrades: number;
+    averageRR: number;
+    totalPercentageGain: number;
 }
 
 export function calculateAnalytics(history: HistoryLog[], initialBalance: number): AnalyticsMetrics {
@@ -91,6 +93,9 @@ export function calculateAnalytics(history: HistoryLog[], initialBalance: number
     const averageLoss = losingTrades > 0 ? grossLoss / losingTrades : 0;
     const maxDrawdownPercent = maxBalance > 0 ? (maxDrawdown / maxBalance) * 100 : 0;
 
+    const averageRR = averageLoss > 0 ? averageWin / averageLoss : (averageWin > 0 ? 999 : 0);
+    const totalPercentageGain = initialBalance > 0 ? (netProfit / initialBalance) * 100 : 0;
+
     return {
         balance: currentBalance,
         initialBalance,
@@ -101,6 +106,8 @@ export function calculateAnalytics(history: HistoryLog[], initialBalance: number
         maxDrawdownPercent,
         averageWin,
         averageLoss,
+        averageRR,
+        totalPercentageGain,
         totalTrades,
         winningTrades,
         losingTrades

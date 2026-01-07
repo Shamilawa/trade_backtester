@@ -33,7 +33,7 @@ export default function AnalyticsCards({ history, session }: AnalyticsCardsProps
             <MetricCard
                 label="Balance"
                 value={`$${metrics.balance.toFixed(2)}`}
-                subValue={metrics.netProfit >= 0 ? `+${metrics.netProfit.toFixed(2)}` : `${metrics.netProfit.toFixed(2)}`}
+                subValue={metrics.netProfit >= 0 ? `+${metrics.netProfit.toFixed(2)} (${metrics.totalPercentageGain.toFixed(2)}%)` : `${metrics.netProfit.toFixed(2)} (${metrics.totalPercentageGain.toFixed(2)}%)`}
                 subValueColor={metrics.netProfit >= 0 ? 'text-trade-success' : 'text-trade-loss'}
                 icon={<Wallet className="w-4 h-4 text-trade-primary" />}
                 highlight
@@ -65,21 +65,32 @@ export default function AnalyticsCards({ history, session }: AnalyticsCardsProps
                 icon={<Activity className="w-4 h-4 text-trade-loss" />}
             />
 
-            {/* Avg Win */}
-            <MetricCard
-                label="Avg Win"
-                value={`$${metrics.averageWin.toFixed(2)}`}
-                icon={<ArrowUpRight className="w-4 h-4 text-trade-success" />}
-                indicatorColor="bg-trade-success"
-            />
-
-            {/* Avg Loss */}
-            <MetricCard
-                label="Avg Loss"
-                value={`$${metrics.averageLoss.toFixed(2)}`}
-                icon={<ArrowDownRight className="w-4 h-4 text-trade-loss" />}
-                indicatorColor="bg-trade-loss"
-            />
+            {/* Avg Win & Loss & RR Combined */}
+            <Card className="col-span-2 relative overflow-hidden border-trade-border bg-trade-surface/20 hover:bg-trade-surface/40 transition-colors backdrop-blur-sm">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-trade-primary/50" />
+                <CardContent className="p-3 h-full flex flex-col justify-between">
+                    <div className="flex justify-between items-start mb-1">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-trade-text-muted">Performance</span>
+                        <div className="p-1.5 rounded-full bg-trade-bg border border-trade-border/50 shadow-sm">
+                            <Scale className="w-4 h-4 text-blue-400" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                        <div>
+                            <div className="text-[11px] text-trade-text-muted mb-0.5 font-medium">Avg Win</div>
+                            <div className="text-base font-mono font-bold text-trade-success">${metrics.averageWin.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div className="text-[11px] text-trade-text-muted mb-0.5 font-medium">Avg Loss</div>
+                            <div className="text-base font-mono font-bold text-trade-loss">${metrics.averageLoss.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div className="text-[11px] text-trade-text-muted mb-0.5 font-medium">Avg R:R</div>
+                            <div className="text-base font-mono font-bold text-trade-text-primary">{metrics.averageRR.toFixed(2)}R</div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
         </div>
     );

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import TradeTicket from '@/components/TradeTicket';
 import TradeHistoryTable from '@/components/TradeHistoryTable';
-import Sidebar from '@/components/Sidebar';
+
 import { useTradeStore } from '@/store/tradeStore';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -39,9 +39,7 @@ export default function SessionClient({ session, initialLogs }: SessionClientPro
     }
 
     return (
-        <main className="h-screen w-screen overflow-hidden bg-trade-bg text-trade-text flex flex-col md:flex-row">
-            <Sidebar />
-
+        <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden w-full">
             {/* Main Content - Data Grid */}
             <section className="flex-1 flex flex-col h-full overflow-hidden bg-trade-bg relative">
                 <div className="flex-none h-[50px] p-3 border-b border-trade-border bg-trade-surface flex items-center justify-between">
@@ -87,6 +85,6 @@ export default function SessionClient({ session, initialLogs }: SessionClientPro
                 </div>
             </aside>
             <WithdrawalModal open={isWithdrawModalOpen} onOpenChange={setIsWithdrawModalOpen} />
-        </main>
+        </div>
     );
 }
