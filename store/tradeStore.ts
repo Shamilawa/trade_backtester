@@ -39,6 +39,7 @@ const DEFAULT_INPUT: TradeInput = {
     entryPrice: 0,
     stopLossPrice: 0,
     asset: 'EURUSD',
+    date: '',
 };
 
 // Helper to re-run calculation
@@ -174,7 +175,7 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
             const newLog: TradeLog = {
                 id: uuidv4(),
                 sessionId: state.activeSessionId,
-                date: state.input.date || new Date().toISOString(), // Use backtest date if provided
+                date: state.input.date,
                 type: 'TRADE',
                 input: { ...state.input }, // Deep copy
                 results: { ...state.results, exits: [...state.results.exits] }, // Deep copy

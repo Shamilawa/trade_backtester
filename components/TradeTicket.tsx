@@ -17,6 +17,7 @@ export default function TradeTicket() {
     const isValidEntry = input.entryPrice > 0;
     const isValidSL = input.stopLossPrice > 0;
     const isValidRisk = input.riskMode === 'percent' ? input.initialRiskPercent > 0 : (input.riskCashAmount || 0) > 0;
+    const isValidDate = !!input.date && input.date.trim() !== '';
 
     // Auto-detect direction warning (optional, or just rely on explicit)
     // For backtesting, if Entry > SL it's logically Long, if Entry < SL it's Short.
@@ -28,7 +29,7 @@ export default function TradeTicket() {
     const isValidLots = results ? results.initialLots > 0 : false;
 
     // Combined Validation
-    const isFormValid = isValidEntry && isValidSL && isValidRisk && isDirectionValid && isValidLots;
+    const isFormValid = isValidEntry && isValidSL && isValidRisk && isDirectionValid && isValidLots && isValidDate;
 
     const handleLogTrade = async () => {
         setHasSubmitted(true);
@@ -77,7 +78,12 @@ export default function TradeTicket() {
                         type="datetime-local"
                         value={input.date || ''}
                         onChange={(e) => setInput('date', e.target.value)}
-                        className="bg-transparent text-[10px] text-trade-text-muted hover:text-trade-text-primary focus:outline-none cursor-pointer w-[110px]"
+                        className={cn(
+                            "bg-transparent text-[10px] focus:outline-none cursor-pointer w-[110px] transition-colors rounded px-1",
+                            input.date ? "text-trade-text-primary" : "text-trade-text-muted",
+                            (hasSubmitted && !isValidDate) ? "border border-trade-loss text-trade-loss" : "hover:text-trade-text-primary"
+                        )}
+                        required
                     />
                     <Settings size={16} className="text-trade-text-muted hover:text-trade-text-primary cursor-pointer transition-colors" />
                 </div>
