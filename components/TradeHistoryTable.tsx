@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, Button, Dialog, DialogContent
 import { Trash2, History, TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AnalyticsCards from './AnalyticsCards';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 import { deleteLog as deleteLogAction } from '@/app/actions';
 
@@ -131,13 +132,13 @@ export default function TradeHistoryTable() {
                         <thead className="sticky top-0 z-10 bg-trade-surface border-b border-trade-border text-xs text-trade-text-secondary uppercase tracking-wider">
                             <tr>
                                 <th className="px-4 py-2 font-medium w-32">Time</th>
-                                <th className="px-4 py-2 font-medium w-24">Asset</th>
+                                <th className="px-4 py-2 font-medium w-24 ">Asset</th>
                                 <th className="px-4 py-2 font-medium w-20 text-center">Side</th>
-                                <th className="px-4 py-2 font-medium text-right w-24">Lots</th>
-                                <th className="px-4 py-2 font-medium text-right w-24">Entry</th>
-                                <th className="px-4 py-2 font-medium text-right w-16">R</th>
-                                <th className="px-4 py-2 font-medium text-right w-16">%</th>
-                                <th className="px-4 py-2 font-medium text-right w-24">Net P/L</th>
+                                <th className="px-4 py-2 font-medium text-center w-24">Lots</th>
+                                <th className="px-4 py-2 font-medium text-center w-24">Entry</th>
+                                <th className="px-4 py-2 font-medium text-center w-16">R Gain</th>
+                                <th className="px-4 py-2 font-medium text-center w-16">% Gain</th>
+                                <th className="px-4 py-2 font-medium text-center w-24">Net P/L</th>
                                 <th className="px-4 py-2 font-medium text-right w-32">Balance</th>
                                 <th className="px-4 py-2 font-medium w-10"></th>
                             </tr>
@@ -190,33 +191,92 @@ export default function TradeHistoryTable() {
                                                 </td>
 
                                                 {/* Volume */}
-                                                <td className="px-4 py-2 text-right font-mono text-trade-text-secondary">
+                                                <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">
                                                     {log.results.initialLots}
                                                 </td>
 
                                                 {/* Entry Price */}
-                                                <td className="px-4 py-2 text-right font-mono text-trade-text-secondary">
+                                                <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">
                                                     {log.input.entryPrice}
                                                 </td>
 
                                                 {/* R Gain */}
-                                                <td className="px-4 py-2 text-right font-mono font-medium">
-                                                    <span className={cn(isProfit ? "text-trade-success" : "text-trade-loss")}>
-                                                        {log.results.initialRiskAmount > 0
-                                                            ? (log.results.totalNetProfit / log.results.initialRiskAmount).toFixed(1) + 'R'
-                                                            : '-'}
-                                                    </span>
+                                                <td className="px-4 py-2 text-center font-mono font-medium">
+                                                    <TooltipProvider>
+                                                        <Tooltip delayDuration={300}>
+                                                            <TooltipTrigger asChild>
+                                                                <span className={cn(isProfit ? "text-trade-success" : "text-trade-loss", "cursor-help decoration-dotted underline underline-offset-2 decoration-trade-text-muted/30")}>
+                                                                    {log.results.initialRiskAmount > 0
+                                                                        ? (log.results.totalNetProfit / log.results.initialRiskAmount).toFixed(1) + 'R'
+                                                                        : '-'}
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent className="bg-trade-surface border-trade-border p-3">
+                                                                <div className="flex flex-col gap-2">
+                                                                    <div className="flex justify-between items-center gap-4 text-xs">
+                                                                        <span className="text-trade-text-muted">Net R (w/ Comm):</span>
+                                                                        <span className={cn("font-mono font-medium", log.results.totalNetProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
+                                                                            {log.results.initialRiskAmount > 0
+                                                                                ? (log.results.totalNetProfit / log.results.initialRiskAmount).toFixed(2) + 'R'
+                                                                                : '-'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center gap-4 text-xs">
+                                                                        <span className="text-trade-text-muted">Gross R (No Comm):</span>
+                                                                        <span className={cn("font-mono font-medium",
+                                                                            log.results.exits.reduce((acc, e) => acc + e.grossProfit, 0) >= 0 ? "text-trade-success" : "text-trade-loss"
+                                                                        )}>
+                                                                            {log.results.initialRiskAmount > 0
+                                                                                ? (log.results.exits.reduce((acc, e) => acc + e.grossProfit, 0) / log.results.initialRiskAmount).toFixed(2) + 'R'
+                                                                                : '-'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="border-t border-trade-border my-1"></div>
+                                                                    <div className="flex justify-between items-center gap-4 text-xs">
+                                                                        <span className="text-trade-text-muted">Comm Paid:</span>
+                                                                        <span className="font-mono text-trade-loss">
+                                                                            -${log.results.exits.reduce((acc, e) => acc + e.commission, 0).toFixed(2)}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
                                                 </td>
 
                                                 {/* % Gain */}
-                                                <td className="px-4 py-2 text-right font-mono font-medium">
-                                                    <span className={cn(isProfit ? "text-trade-success" : "text-trade-loss")}>
-                                                        {((log.results.totalNetProfit / log.input.accountBalance) * 100).toFixed(2)}%
-                                                    </span>
+                                                <td className="px-4 py-2 text-center font-mono font-medium">
+                                                    <TooltipProvider>
+                                                        <Tooltip delayDuration={300}>
+                                                            <TooltipTrigger asChild>
+                                                                <span className={cn(isProfit ? "text-trade-success" : "text-trade-loss", "cursor-help decoration-dotted underline underline-offset-2 decoration-trade-text-muted/30")}>
+                                                                    {((log.results.totalNetProfit / log.input.accountBalance) * 100).toFixed(2)}%
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent className="bg-trade-surface border-trade-border p-3">
+                                                                <div className="flex flex-col gap-2">
+                                                                    <div className="flex justify-between items-center gap-4 text-xs">
+                                                                        <span className="text-trade-text-muted">Net % (w/ Comm):</span>
+                                                                        <span className={cn("font-mono font-medium", log.results.totalNetProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
+                                                                            {((log.results.totalNetProfit / log.input.accountBalance) * 100).toFixed(2)}%
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center gap-4 text-xs">
+                                                                        <span className="text-trade-text-muted">Gross % (No Comm):</span>
+                                                                        <span className={cn("font-mono font-medium",
+                                                                            log.results.exits.reduce((acc, e) => acc + e.grossProfit, 0) >= 0 ? "text-trade-success" : "text-trade-loss"
+                                                                        )}>
+                                                                            {((log.results.exits.reduce((acc, e) => acc + e.grossProfit, 0) / log.input.accountBalance) * 100).toFixed(2)}%
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
                                                 </td>
 
                                                 {/* Net P/L */}
-                                                <td className="px-4 py-2 text-right font-mono font-medium">
+                                                <td className="px-4 py-2 text-center font-mono font-medium">
                                                     <span className={cn(
                                                         isProfit ? "text-trade-success" : "text-trade-loss"
                                                     )}>
