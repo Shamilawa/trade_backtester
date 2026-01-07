@@ -2,16 +2,36 @@
 
 import React from 'react';
 import { useTradeStore } from '@/store/tradeStore';
-import { Card, CardContent, CardHeader, CardTitle, Button } from './ui/common';
+import { Card, CardContent, CardHeader, CardTitle, Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/common';
 import { Trash2, History, TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AnalyticsCards from './AnalyticsCards';
 
+import { deleteLog as deleteLogAction } from '@/app/actions';
+
 export default function TradeHistoryTable() {
-    const { history, deleteLog, clearHistory, activeSessionId, sessions } = useTradeStore();
+    const { history, deleteLog, activeSessionId, sessions } = useTradeStore();
     const activeSession = sessions.find(s => s.id === activeSessionId);
     const [assetFilter, setAssetFilter] = React.useState<string>('ALL');
     const [typeFilter, setTypeFilter] = React.useState<string>('ALL');
+
+    const [deleteId, setDeleteId] = React.useState<string | null>(null);
+
+    const handleDeleteClick = (id: string) => {
+        setDeleteId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (deleteId) {
+            deleteLog(deleteId); // Optimistic Update
+            try {
+                await deleteLogAction(deleteId);
+            } catch (e) {
+                console.error("Failed to delete log server side", e);
+            }
+            setDeleteId(null);
+        }
+    };
 
     // Filter history for active session & UI filters
     const sessionHistory = history.filter(log => {
@@ -102,12 +122,6 @@ export default function TradeHistoryTable() {
                                     <span className="font-mono text-trade-text-primary">{winRate.toFixed(1)}%</span>
                                 </div>
                             </div>
-                            <Button
-                                onClick={clearHistory}
-                                className="h-6 text-[10px] bg-transparent border border-trade-border text-trade-text-muted hover:text-trade-loss hover:border-trade-loss hover:bg-trade-loss/10 px-2"
-                            >
-                                Clear
-                            </Button>
                         </div>
                     )}
                 </div>
@@ -119,8 +133,10 @@ export default function TradeHistoryTable() {
                                 <th className="px-4 py-2 font-medium w-32">Time</th>
                                 <th className="px-4 py-2 font-medium w-24">Asset</th>
                                 <th className="px-4 py-2 font-medium w-20 text-center">Side</th>
-                                <th className="px-4 py-2 font-medium text-right w-24">Vol</th>
+                                <th className="px-4 py-2 font-medium text-right w-24">Lots</th>
                                 <th className="px-4 py-2 font-medium text-right w-24">Entry</th>
+                                <th className="px-4 py-2 font-medium text-right w-16">R</th>
+                                <th className="px-4 py-2 font-medium text-right w-16">%</th>
                                 <th className="px-4 py-2 font-medium text-right w-24">Net P/L</th>
                                 <th className="px-4 py-2 font-medium text-right w-32">Balance</th>
                                 <th className="px-4 py-2 font-medium w-10"></th>
@@ -145,11 +161,15 @@ export default function TradeHistoryTable() {
                                         return (
                                             <tr key={log.id} className="group hover:bg-trade-surface-hover/50 transition-colors text-xs text-trade-text-primary">
                                                 {/* Time */}
-                                                <td className="px-4 py-2 whitespace-nowrap text-trade-text-muted font-mono">
-                                                    {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-                                                    <span className="text-[10px] ml-1 opacity-50">
-                                                        {new Date(log.date).getDate()}
-                                                    </span>
+                                                <td className="px-4 py-2 whitespace-nowrap font-mono">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-trade-text-primary text-xs">
+                                                            {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                                        </span>
+                                                        <span className="text-[10px] text-trade-text-muted opacity-70">
+                                                            {new Date(log.date).toLocaleDateString([], { month: 'short', day: '2-digit' })}
+                                                        </span>
+                                                    </div>
                                                 </td>
 
                                                 {/* Asset */}
@@ -179,6 +199,22 @@ export default function TradeHistoryTable() {
                                                     {log.input.entryPrice}
                                                 </td>
 
+                                                {/* R Gain */}
+                                                <td className="px-4 py-2 text-right font-mono font-medium">
+                                                    <span className={cn(isProfit ? "text-trade-success" : "text-trade-loss")}>
+                                                        {log.results.initialRiskAmount > 0
+                                                            ? (log.results.totalNetProfit / log.results.initialRiskAmount).toFixed(1) + 'R'
+                                                            : '-'}
+                                                    </span>
+                                                </td>
+
+                                                {/* % Gain */}
+                                                <td className="px-4 py-2 text-right font-mono font-medium">
+                                                    <span className={cn(isProfit ? "text-trade-success" : "text-trade-loss")}>
+                                                        {((log.results.totalNetProfit / log.input.accountBalance) * 100).toFixed(2)}%
+                                                    </span>
+                                                </td>
+
                                                 {/* Net P/L */}
                                                 <td className="px-4 py-2 text-right font-mono font-medium">
                                                     <span className={cn(
@@ -196,7 +232,7 @@ export default function TradeHistoryTable() {
                                                 {/* Actions */}
                                                 <td className="px-4 py-2 text-right">
                                                     <button
-                                                        onClick={() => deleteLog(log.id)}
+                                                        onClick={() => handleDeleteClick(log.id)}
                                                         className="opacity-0 group-hover:opacity-100 text-trade-text-muted hover:text-trade-loss transition-opacity p-1"
                                                         title="Delete Log"
                                                     >
@@ -210,16 +246,22 @@ export default function TradeHistoryTable() {
                                         const isWithdrawal = log.type === 'WITHDRAWAL';
                                         return (
                                             <tr key={log.id} className="group hover:bg-trade-surface-hover/50 transition-colors text-xs text-trade-text-primary">
-                                                <td className="px-4 py-2 whitespace-nowrap text-trade-text-muted font-mono">
-                                                    {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-                                                    <span className="text-[10px] ml-1 opacity-50">
-                                                        {new Date(log.date).getDate()}
-                                                    </span>
+                                                <td className="px-4 py-2 whitespace-nowrap font-mono">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-trade-text-primary text-xs">
+                                                            {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                                        </span>
+                                                        <span className="text-[10px] text-trade-text-muted opacity-70">
+                                                            {new Date(log.date).toLocaleDateString([], { month: 'short', day: '2-digit' })}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-2 font-medium italic text-trade-text-secondary">
                                                     {log.type === 'WITHDRAWAL' ? 'Withdrawal' : 'Deposit'} {log.note && <span className="text-[10px] text-trade-text-muted">({log.note})</span>}
                                                 </td>
                                                 <td className="px-4 py-2 text-center">-</td>
+                                                <td className="px-4 py-2 text-right font-mono text-trade-text-secondary">-</td>
+                                                <td className="px-4 py-2 text-right font-mono text-trade-text-secondary">-</td>
                                                 <td className="px-4 py-2 text-right font-mono text-trade-text-secondary">-</td>
                                                 <td className="px-4 py-2 text-right font-mono text-trade-text-secondary">-</td>
                                                 <td className="px-4 py-2 text-right font-mono font-medium">
@@ -232,7 +274,7 @@ export default function TradeHistoryTable() {
                                                 </td>
                                                 <td className="px-4 py-2 text-right">
                                                     <button
-                                                        onClick={() => deleteLog(log.id)}
+                                                        onClick={() => handleDeleteClick(log.id)}
                                                         className="opacity-0 group-hover:opacity-100 text-trade-text-muted hover:text-trade-loss transition-opacity p-1"
                                                         title="Delete Log"
                                                     >
@@ -246,7 +288,22 @@ export default function TradeHistoryTable() {
                         </tbody>
                     </table>
                 </div>
-            </Card>
-        </div>
+            </Card >
+
+            <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Delete Confirmation</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this log? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
+                        <Button variant="default" className="bg-trade-loss hover:bg-trade-loss/90" onClick={confirmDelete}>Delete</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div >
     );
 }

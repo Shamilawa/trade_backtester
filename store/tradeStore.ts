@@ -174,7 +174,7 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
             const newLog: TradeLog = {
                 id: uuidv4(),
                 sessionId: state.activeSessionId,
-                date: new Date().toISOString(),
+                date: state.input.date || new Date().toISOString(), // Use backtest date if provided
                 type: 'TRADE',
                 input: { ...state.input }, // Deep copy
                 results: { ...state.results, exits: [...state.results.exits] }, // Deep copy
@@ -273,7 +273,6 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
 
             return {
                 sessions: newSessions,
-                activeSessionId: session.id,
                 activeSessionId: session.id,
                 // Wait, if we have other sessions' history in state.history, we should keep them?
                 // The store seems to keep ALL history in one array? 

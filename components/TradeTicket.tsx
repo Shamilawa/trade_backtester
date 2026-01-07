@@ -71,7 +71,14 @@ export default function TradeTicket() {
                         <div className="text-[10px] text-trade-text-muted mt-0.5">USD Margin</div>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                    {/* Date Picker - Compact */}
+                    <input
+                        type="datetime-local"
+                        value={input.date || ''}
+                        onChange={(e) => setInput('date', e.target.value)}
+                        className="bg-transparent text-[10px] text-trade-text-muted hover:text-trade-text-primary focus:outline-none cursor-pointer w-[110px]"
+                    />
                     <Settings size={16} className="text-trade-text-muted hover:text-trade-text-primary cursor-pointer transition-colors" />
                 </div>
             </div>

@@ -21,6 +21,7 @@ export interface TradeInput {
   riskMode: 'percent' | 'cash';
   accountBalance: number;
   asset: AssetType;
+  date?: string; // Optional Date/Time override for backtesting
 }
 
 export interface ExitResult {
