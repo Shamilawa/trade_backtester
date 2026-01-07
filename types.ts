@@ -51,10 +51,23 @@ export interface Session {
   createdAt: string; // ISO string
 }
 
-export interface TradeLog {
+export interface BaseLog {
   id: string;
-  sessionId: string; // Creates 1-to-many relationship
-  date: string; // ISO string
+  sessionId: string;
+  date: string;
+}
+
+export interface TradeLog extends BaseLog {
+  type: 'TRADE';
   input: TradeInput;
   results: CalculationResult;
 }
+
+export interface TransferLog extends BaseLog {
+  type: 'WITHDRAWAL' | 'DEPOSIT';
+  amount: number;
+  newBalance: number;
+  note?: string;
+}
+
+export type HistoryLog = TradeLog | TransferLog;

@@ -8,10 +8,13 @@ import { useTradeStore } from '@/store/tradeStore';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/common';
+import WithdrawalModal from '@/components/WithdrawalModal';
+import { useState } from 'react';
 
 export default function SessionDashboard({ params }: { params: Promise<{ id: string }> }) {
     const { setActiveSession, activeSessionId, sessions } = useTradeStore();
     const router = useRouter();
+    const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
 
     // Unwrap params using React.use() or await if in async component, but this is client component so we use the hook pattern or just unwrap it if it was passed as prop in server component. 
     // Next.js 15+ params are promises.
@@ -64,7 +67,15 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                         </h2>
                     </div>
                     <div>
-                        {/* Session specific actions could go here */}
+                        <div>
+                            <Button
+                                variant="outline"
+                                className="h-8 text-xs gap-2"
+                                onClick={() => setIsWithdrawModalOpen(true)}
+                            >
+                                Withdraw
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
@@ -82,6 +93,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                     <TradeTicket />
                 </div>
             </aside>
+            <WithdrawalModal open={isWithdrawModalOpen} onOpenChange={setIsWithdrawModalOpen} />
         </main>
     );
 }

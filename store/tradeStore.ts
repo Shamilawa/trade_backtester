@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { AssetType, Exit, TradeInput, CalculationResult, TradeLog, Session } from '../types';
+import { AssetType, Exit, TradeInput, CalculationResult, TradeLog, Session, HistoryLog, TransferLog } from '../types';
 import { calculateTrade } from '../utils/calculations';
 
 interface TradeStore {
@@ -12,7 +12,7 @@ interface TradeStore {
     input: TradeInput;
     exits: Exit[];
     results: CalculationResult | null;
-    history: TradeLog[]; // Contains ALL trades, filtered by UI/Getters ideally, or we filter in actions
+    history: HistoryLog[]; // Contains ALL trades, filtered by UI/Getters ideally, or we filter in actions
 
     // Session Actions
     createSession: (name: string, initialBalance: number) => string;
@@ -25,6 +25,7 @@ interface TradeStore {
     removeExit: (id: string) => void;
     updateExit: (id: string, field: keyof Exit, value: number) => void;
     logTrade: () => void;
+    addTransaction: (type: 'WITHDRAWAL' | 'DEPOSIT', amount: number, note?: string) => void;
     deleteLog: (id: string) => void;
     clearHistory: () => void; // Clears ONLY active session history
 }
@@ -93,7 +94,12 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
                 // Sort by date descending (newest first) as stored in history usually
                 // Our history is [newest, ..., oldest]
                 // So index 0 is the latest trade.
-                currentBalance = sessionTrades[0].results.finalAccountBalance;
+                const latestLog = sessionTrades[0];
+                if (latestLog.type === 'TRADE') {
+                    currentBalance = latestLog.results.finalAccountBalance;
+                } else { // WITHDRAWAL or DEPOSIT
+                    currentBalance = latestLog.newBalance;
+                }
             }
 
             return {
@@ -168,6 +174,7 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
                 id: uuidv4(),
                 sessionId: state.activeSessionId,
                 date: new Date().toISOString(),
+                type: 'TRADE',
                 input: { ...state.input }, // Deep copy
                 results: { ...state.results, exits: [...state.results.exits] }, // Deep copy
             };
@@ -175,6 +182,39 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
             // Update the input balance for the NEXT trade automatically?
             // Yes, user expects the balance to update after a trade.
             const newBalance = state.results.finalAccountBalance;
+            const nextInput = { ...state.input, accountBalance: newBalance };
+
+            return {
+                history: [newLog, ...state.history],
+                input: nextInput,
+                results: recalc(nextInput, state.exits)
+            };
+        });
+    },
+
+    addTransaction: (type, amount, note) => {
+        set((state) => {
+            if (!state.activeSessionId) return {};
+
+            // Calculate new balance
+            const currentBalance = state.input.accountBalance;
+            const newBalance = type === 'WITHDRAWAL'
+                ? currentBalance - amount
+                : currentBalance + amount;
+
+            // Prevent negative balance if withdrawal? (Optional, maybe allow margin call simulation)
+            // if (newBalance < 0) return {}; 
+
+            const newLog: TransferLog = {
+                id: uuidv4(),
+                sessionId: state.activeSessionId,
+                date: new Date().toISOString(),
+                type: type,
+                amount: amount,
+                newBalance: newBalance,
+                note: note
+            };
+
             const nextInput = { ...state.input, accountBalance: newBalance };
 
             return {
