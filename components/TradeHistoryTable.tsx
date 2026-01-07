@@ -8,38 +8,79 @@ import { cn } from '@/lib/utils';
 
 export default function TradeHistoryTable() {
     const { history, deleteLog, clearHistory, activeSessionId } = useTradeStore();
+    const [assetFilter, setAssetFilter] = React.useState<string>('ALL');
+    const [typeFilter, setTypeFilter] = React.useState<string>('ALL');
 
-    // Filter history for active session
-    const sessionHistory = history.filter(log => log.sessionId === activeSessionId);
+    // Filter history for active session & UI filters
+    const sessionHistory = history.filter(log => {
+        if (log.sessionId !== activeSessionId) return false;
 
-    // Calculate Stats for Header
-    const tradesOnly = sessionHistory.filter(log => log.type === 'TRADE');
-    const totalTrades = tradesOnly.length;
-    const totalProfit = tradesOnly.reduce((acc, trade) => acc + trade.results.totalNetProfit, 0);
+        // Asset Filter: Matches Asset if Trade, or hides Transfer if specific asset selected?
+        // Usually Transfer (Deposit/Withdraw) is "Account Level", not Asset Level.
+        // So if filtering for EURUSD, we probably don't want to see Withdrawals? Or do we?
+        // Let's assume strict filtering: If EURUSD selected, only show EURUSD trades.
+        if (assetFilter !== 'ALL') {
+            if (log.type !== 'TRADE') return false; // Transfers have no asset
+            if (log.input.asset !== assetFilter) return false;
+        }
+
+        // Type Filter
+        if (typeFilter !== 'ALL') {
+            if (typeFilter === 'TRADE' && log.type !== 'TRADE') return false;
+            if (typeFilter === 'TRANSFER' && (log.type === 'TRADE')) return false;
+            // Note: TRANSFER covers WITHDRAWAL and DEPOSIT
+        }
+
+        return true;
+    });
+
+    // Calculate Stats for Header (Based on FILTERED view or GLOBAL session view? usually Global is better for "Net P/L" context, but table shows filtered.)
+    // Let's keep the Stats based on the GLOBAL session (before filters) so users always know their true P/L, 
+    // OR matching the view. Matching the view is often less confusing.
+    // However, "Net P/L" of just EURUSD trades is useful.
+    // Let's us the filtered list for stats.
+
+    const displayedTrades = sessionHistory.filter(log => log.type === 'TRADE');
+    const totalTrades = displayedTrades.length;
+    const totalProfit = displayedTrades.reduce((acc, trade) => acc + trade.results.totalNetProfit, 0);
     const winRate = totalTrades > 0
-        ? (tradesOnly.filter(t => t.results.totalNetProfit > 0).length / totalTrades) * 100
+        ? (displayedTrades.filter(t => t.results.totalNetProfit > 0).length / totalTrades) * 100
         : 0;
 
     return (
         <div className="flex flex-col h-full bg-trade-bg">
-            {/* Stats Header (Optional if not in main layout) */}
-            {/* <div className="grid grid-cols-4 gap-4 mb-4">
-                <Card className="p-3 bg-trade-surface border-trade-border">
-                    <div className="text-[10px] uppercase text-trade-text-muted">Net P/L</div>
-                    <div className={cn("text-xl font-mono font-bold", totalProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
-                        ${totalProfit.toFixed(2)}
-                    </div>
-                </Card>
-             </div> */}
-
             <Card className="flex-1 flex flex-col border border-trade-border bg-trade-surface/20 shadow-none rounded-none md:rounded-lg overflow-hidden backdrop-blur-sm">
                 <div className="flex items-center justify-between p-3 border-b border-trade-border bg-trade-surface/50 backdrop-blur-md">
-                    <div className="flex items-center gap-2">
-                        <History className="w-4 h-4 text-trade-primary" />
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Trade Log</span>
-                        <span className="text-xs text-trade-text-muted px-2 py-0.5 bg-trade-bg rounded-md border border-trade-border font-mono">
-                            {totalTrades}
-                        </span>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <History className="w-4 h-4 text-trade-primary" />
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Trade Log</span>
+                            <span className="text-xs text-trade-text-muted px-2 py-0.5 bg-trade-bg rounded-md border border-trade-border font-mono">
+                                {totalTrades}
+                            </span>
+                        </div>
+
+                        {/* Filters */}
+                        <div className="flex items-center gap-2">
+                            <select
+                                value={assetFilter}
+                                onChange={(e) => setAssetFilter(e.target.value)}
+                                className="h-6 text-[10px] bg-trade-bg border border-trade-border rounded text-trade-text-secondary focus:outline-none focus:border-trade-primary cursor-pointer"
+                            >
+                                <option value="ALL">All Assets</option>
+                                <option value="EURUSD">EURUSD</option>
+                                <option value="XAUUSD">XAUUSD</option>
+                            </select>
+                            <select
+                                value={typeFilter}
+                                onChange={(e) => setTypeFilter(e.target.value)}
+                                className="h-6 text-[10px] bg-trade-bg border border-trade-border rounded text-trade-text-secondary focus:outline-none focus:border-trade-primary cursor-pointer"
+                            >
+                                <option value="ALL">All Types</option>
+                                <option value="TRADE">Trades</option>
+                                <option value="TRANSFER">Transfers</option>
+                            </select>
+                        </div>
                     </div>
 
                     {sessionHistory.length > 0 && (
