@@ -1,31 +1,27 @@
-
 'use server';
 
-import { sql } from '@vercel/postgres';
-import { db } from '@vercel/postgres';
-import { drizzle } from 'drizzle-orm/vercel-postgres';
+import { db } from '@/lib/db';
 import { sessions, logs } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { Session, TradeLog, TransferLog, HistoryLog } from '@/types';
-
-// Create a drizzle instance
-const drizzleDb = drizzle(sql);
+import { revalidatePath } from 'next/cache';
 
 export async function createSession(name: string, initialBalance: number): Promise<string> {
     const id = crypto.randomUUID();
 
-    await drizzleDb.insert(sessions).values({
+    await db.insert(sessions).values({
         id,
         name,
         initialBalance,
         currency: 'USD',
     });
 
+    revalidatePath('/');
     return id;
 }
 
 export async function getSession(id: string): Promise<Session | undefined> {
-    const result = await drizzleDb.select().from(sessions).where(eq(sessions.id, id));
+    const result = await db.select().from(sessions).where(eq(sessions.id, id));
 
     if (result.length === 0) return undefined;
 
@@ -40,7 +36,7 @@ export async function getSession(id: string): Promise<Session | undefined> {
 }
 
 export async function getRecentSessions(): Promise<Session[]> {
-    const result = await drizzleDb.select().from(sessions).orderBy(desc(sessions.createdAt)).limit(10);
+    const result = await db.select().from(sessions).orderBy(desc(sessions.createdAt)).limit(10);
     return result.map(row => ({
         id: row.id,
         name: row.name,
@@ -51,7 +47,7 @@ export async function getRecentSessions(): Promise<Session[]> {
 }
 
 export async function saveLog(sessionId: string, log: TradeLog | TransferLog) {
-    await drizzleDb.insert(logs).values({
+    await db.insert(logs).values({
         id: log.id,
         sessionId: sessionId,
         type: log.type,
@@ -60,7 +56,7 @@ export async function saveLog(sessionId: string, log: TradeLog | TransferLog) {
 }
 
 export async function getLogs(sessionId: string): Promise<HistoryLog[]> {
-    const result = await drizzleDb
+    const result = await db
         .select()
         .from(logs)
         .where(eq(logs.sessionId, sessionId))
@@ -70,9 +66,10 @@ export async function getLogs(sessionId: string): Promise<HistoryLog[]> {
 }
 
 export async function deleteSession(id: string) {
-    await drizzleDb.delete(sessions).where(eq(sessions.id, id));
+    await db.delete(sessions).where(eq(sessions.id, id));
+    revalidatePath('/');
 }
 
 export async function deleteLog(id: string) {
-    await drizzleDb.delete(logs).where(eq(logs.id, id));
+    await db.delete(logs).where(eq(logs.id, id));
 }
