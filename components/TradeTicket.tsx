@@ -1,7 +1,7 @@
 import { useTradeStore } from '@/store/tradeStore';
 import { saveLog } from '@/app/actions';
 import { Button, Card, Input, Label } from './ui/common';
-import { Plus, Trash2, Save, X, ChevronDown, ChevronUp, AlertCircle, DollarSign, Percent, ArrowDownUp, Settings, GripHorizontal } from 'lucide-react';
+import { Plus, Trash2, Save, X, ChevronDown, ChevronUp, AlertCircle, DollarSign, Percent, ArrowDownUp, Settings, GripHorizontal, Calendar as CalendarIcon } from 'lucide-react';
 import { ASSET_CONFIGS, PIP_MULTIPLIERS } from '@/utils/calculations';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -19,11 +19,7 @@ export default function TradeTicket() {
     const isValidRisk = input.riskMode === 'percent' ? input.initialRiskPercent > 0 : (input.riskCashAmount || 0) > 0;
     const isValidDate = !!input.date && input.date.trim() !== '';
 
-    // Auto-detect direction warning (optional, or just rely on explicit)
-    // For backtesting, if Entry > SL it's logically Long, if Entry < SL it's Short.
-    // If user selected 'Long' but Entry < SL, that's invalid for a standard Long (Stop would be triggered immediately).
-    // Let's enforce logical consistency or just warn? 
-    // Usually: Long -> SL must be < Entry. Short -> SL must be > Entry.
+    // Auto-detect direction warning
     const isDirectionValid = isLong ? (input.stopLossPrice < input.entryPrice) : (input.stopLossPrice > input.entryPrice);
 
     const isValidLots = results ? results.initialLots > 0 : false;
@@ -35,21 +31,18 @@ export default function TradeTicket() {
         setHasSubmitted(true);
         if (isFormValid) {
             logTrade();
-            // Get the latest log from store state
             const state = useTradeStore.getState();
             if (state.activeSessionId && state.history.length > 0) {
                 const latestLog = state.history[0];
                 await saveLog(state.activeSessionId, latestLog);
             }
             setHasSubmitted(false);
-            setTradeDirection('long'); // Reset direction
+            setTradeDirection('long');
         }
     };
 
     return (
         <div className="h-full flex flex-col bg-trade-bg text-trade-text select-none font-sans">
-
-            {/* Header / Asset Info */}
             <div className="h-[50px] flex-shrink-0 flex items-center justify-between px-4 border-b border-trade-border bg-trade-bg z-10">
                 <div className="flex items-center gap-2">
                     <div className="bg-trade-primary/20 p-1.5 rounded text-trade-primary">
@@ -73,20 +66,24 @@ export default function TradeTicket() {
                         <div className="text-[10px] text-trade-text-muted mt-0.5">USD Margin</div>
                     </div>
                 </div>
-                <div className="flex gap-2 items-center">
-                    {/* Date Picker - Compact */}
-                    <input
-                        type="datetime-local"
-                        value={input.date || ''}
-                        onChange={(e) => setInput('date', e.target.value)}
-                        className={cn(
-                            "bg-transparent text-[10px] focus:outline-none cursor-pointer w-[110px] transition-colors rounded px-1",
-                            input.date ? "text-trade-text-primary" : "text-trade-text-muted",
-                            (hasSubmitted && !isValidDate) ? "border border-trade-loss text-trade-loss" : "hover:text-trade-text-primary"
-                        )}
-                        required
-                    />
-                    <Settings size={16} className="text-trade-text-muted hover:text-trade-text-primary cursor-pointer transition-colors" />
+                <div className="flex items-center">
+                    {/* Date Picker - Improved UX */}
+                    <div className="relative group">
+                        <div className="flex items-center gap-2 bg-trade-surface/50 border border-trade-border rounded px-2 py-1.5 hover:border-trade-primary/50 transition-colors">
+                            <CalendarIcon size={14} className="text-trade-text-muted group-hover:text-trade-primary transition-colors" />
+                            <input
+                                type="datetime-local"
+                                value={input.date || ''}
+                                onChange={(e) => setInput('date', e.target.value)}
+                                className={cn(
+                                    "bg-transparent text-xs font-mono focus:outline-none cursor-pointer w-[140px] transition-colors",
+                                    input.date ? "text-trade-text-primary h-full" : "text-trade-text-muted",
+                                    (hasSubmitted && !isValidDate) && "text-trade-loss"
+                                )}
+                                required
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -316,6 +313,6 @@ export default function TradeTicket() {
                     </Button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
