@@ -2,11 +2,13 @@
 
 import React from 'react';
 import { useTradeStore } from '@/store/tradeStore';
+import { TradeLog } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/common';
-import { Trash2, History, TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight, Image as ImageIcon } from 'lucide-react';
+import { Trash2, History, TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight, Image as ImageIcon, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AnalyticsCards from './AnalyticsCards';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import EditTradeModal from './EditTradeModal';
 
 import { deleteLog as deleteLogAction } from '@/app/actions';
 
@@ -71,6 +73,8 @@ export default function TradeHistoryTable() {
         ? (displayedTrades.filter(t => t.results.totalNetProfit > 0).length / totalTrades) * 100
         : 0;
 
+    const [editTrade, setEditTrade] = React.useState<TradeLog | null>(null);
+
     return (
         <div className="flex flex-col h-full bg-trade-bg">
             {/* Analytics Section */}
@@ -129,7 +133,7 @@ export default function TradeHistoryTable() {
                 </div>
 
                 <div className="flex-1 overflow-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left text-xs border-collapse">
                         <thead className="sticky top-0 z-10 bg-trade-surface border-b border-trade-border text-xs text-trade-text-secondary uppercase tracking-wider">
                             <tr>
                                 <th className="px-4 py-2 w-8"></th>
@@ -143,7 +147,7 @@ export default function TradeHistoryTable() {
                                 <th className="px-4 py-2 font-medium text-center w-16">Comm</th>
                                 <th className="px-4 py-2 font-medium text-center w-24">Net P/L</th>
                                 <th className="px-4 py-2 font-medium text-right w-32">Balance</th>
-                                <th className="px-4 py-2 font-medium w-10"></th>
+                                <th className="px-4 py-2 font-medium w-16 text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-trade-border bg-trade-bg/50">
@@ -234,14 +238,23 @@ export default function TradeHistoryTable() {
                                                     <td className="px-4 py-2 text-right font-mono text-trade-text-muted">
                                                         ${log.results.finalAccountBalance.toFixed(2)}
                                                     </td>
-                                                    <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
-                                                        <button
-                                                            onClick={() => handleDeleteClick(log.id)}
-                                                            className="opacity-0 group-hover:opacity-100 text-trade-text-muted hover:text-trade-loss transition-opacity p-1"
-                                                            title="Delete Log"
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </button>
+                                                    <td className="px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button
+                                                                onClick={() => setEditTrade(log)}
+                                                                className="text-trade-text-muted hover:text-trade-primary transition-colors p-1"
+                                                                title="Edit Log"
+                                                            >
+                                                                <Pencil size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteClick(log.id)}
+                                                                className="text-trade-text-muted hover:text-trade-loss transition-colors p-1"
+                                                                title="Delete Log"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
 
@@ -390,6 +403,12 @@ export default function TradeHistoryTable() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <EditTradeModal
+                isOpen={!!editTrade}
+                onClose={() => setEditTrade(null)}
+                trade={editTrade}
+            />
         </div >
     );
 }
