@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { Session, HistoryLog, TradeLog } from '@/types';
 import { calculateEquityCurve, calculateMetrics, filterLogs } from '@/lib/analytics';
 import { KeyMetrics } from './KeyMetrics';
-import { EquityCurveChart, DrawdownChart, WinLossDistributionChart } from './Charts';
+import { PnLByTradeChart, EquityCurveChart, DrawdownChart, WinLossDistributionChart } from './Charts';
 import { AnalyticsHeader } from './AnalyticsHeader';
 
 export default function AnalyticsClient({ session, initialLogs }: { session: Session, initialLogs: HistoryLog[] }) {
@@ -17,6 +17,16 @@ export default function AnalyticsClient({ session, initialLogs }: { session: Ses
 
     const metrics = useMemo(() => calculateMetrics(filteredLogs), [filteredLogs]);
     const equityCurve = useMemo(() => calculateEquityCurve(filteredLogs, session.initialBalance), [filteredLogs, session.initialBalance]);
+
+    const pnlByTrade = useMemo(() => {
+        return filteredLogs
+            .filter(l => l.type === 'TRADE')
+            .map((l, i) => ({
+                tradeNumber: `#${i + 1}`,
+                pnl: Number((l as TradeLog).results.totalNetProfit),
+                fill: (l as TradeLog).results.totalNetProfit >= 0 ? '#10b981' : '#f43f5e'
+            }));
+    }, [filteredLogs]);
 
     const winLossDistribution = useMemo(() => {
         const trades = filteredLogs.filter(l => l.type === 'TRADE') as TradeLog[];
@@ -70,9 +80,14 @@ export default function AnalyticsClient({ session, initialLogs }: { session: Ses
                         </div>
                     </div>
 
-                    {/* Bottom Row: Distribution */}
-                    <div className="w-full h-[300px]">
-                        <WinLossDistributionChart data={winLossDistribution} className="h-full" />
+                    {/* Bottom Row: P&L by Trade + Distribution */}
+                    <div className="flex flex-col lg:flex-row gap-6 h-auto lg:h-[400px]">
+                        <div className="w-full lg:w-[60%] h-[300px] lg:h-full">
+                            <PnLByTradeChart data={pnlByTrade} className="h-[300px] lg:h-full" />
+                        </div>
+                        <div className="w-full lg:w-[40%] h-[300px] lg:h-full">
+                            <WinLossDistributionChart data={winLossDistribution} className="h-full" />
+                        </div>
                     </div>
                 </div>
 

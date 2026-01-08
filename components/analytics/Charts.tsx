@@ -48,7 +48,15 @@ export function EquityCurveChart({ data, className }: EquityCurveProps) {
                             axisLine={false}
                             minTickGap={40}
                             tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
-                            dy={10}
+                            dy={5}
+                            label={{
+                                value: 'Trade #',
+                                position: 'insideBottomRight',
+                                offset: -5,
+                                fill: '#475569',
+                                fontSize: 10,
+                                fontFamily: 'var(--font-mono)'
+                            }}
                         />
                         <YAxis
                             stroke="#64748b"
@@ -58,7 +66,16 @@ export function EquityCurveChart({ data, className }: EquityCurveProps) {
                             tickFormatter={(value) => `${value}`}
                             domain={['auto', 'auto']}
                             tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
-                            dx={-10}
+                            dx={-5}
+                            label={{
+                                value: 'Balance',
+                                angle: -90,
+                                position: 'insideLeft',
+                                fill: '#475569',
+                                fontSize: 10,
+                                fontFamily: 'var(--font-mono)',
+                                style: { textAnchor: 'middle' }
+                            }}
                         />
                         <Tooltip
                             contentStyle={{
@@ -99,7 +116,7 @@ export function DrawdownChart({ data, className }: EquityCurveProps) {
             </CardHeader>
             <div className="flex-1 w-full min-h-0 pl-0">
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} opacity={0.1} />
                         <XAxis
                             dataKey="tradeNumber"
@@ -107,7 +124,17 @@ export function DrawdownChart({ data, className }: EquityCurveProps) {
                             fontSize={10}
                             tickLine={false}
                             axisLine={false}
-                            hide
+                            minTickGap={40}
+                            tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
+                            dy={5}
+                            label={{
+                                value: 'Trade #',
+                                position: 'insideBottomRight',
+                                offset: -5,
+                                fill: '#475569',
+                                fontSize: 10,
+                                fontFamily: 'var(--font-mono)'
+                            }}
                         />
                         <YAxis
                             stroke="#64748b"
@@ -116,6 +143,16 @@ export function DrawdownChart({ data, className }: EquityCurveProps) {
                             axisLine={false}
                             tickFormatter={(value) => `${Math.abs(value)}`}
                             tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
+                            dx={-5}
+                            label={{
+                                value: 'DD ($)',
+                                angle: -90,
+                                position: 'insideLeft',
+                                fill: '#475569',
+                                fontSize: 10,
+                                fontFamily: 'var(--font-mono)',
+                                style: { textAnchor: 'middle' }
+                            }}
                         />
                         <Tooltip
                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f8fafc', borderRadius: '4px', fontSize: '11px', fontFamily: 'var(--font-mono)' }}
@@ -138,6 +175,73 @@ export function DrawdownChart({ data, className }: EquityCurveProps) {
     );
 }
 
+interface PnLByTradeProps {
+    data: any[];
+    className?: string;
+}
+
+export function PnLByTradeChart({ data, className }: PnLByTradeProps) {
+    return (
+        <Card className={cn("flex flex-col h-[300px] border border-trade-border bg-trade-surface shadow-none rounded-none md:rounded-[6px]", className)}>
+            <CardHeader className="py-3 px-4 border-b border-trade-border bg-trade-surface/50">
+                <CardTitle className="text-xs uppercase font-bold tracking-wider text-trade-text-secondary">P&L by Trade</CardTitle>
+            </CardHeader>
+            <div className="flex-1 w-full min-h-0 pl-0">
+                <BarChart width={600} height={300} data={data} margin={{ top: 10, right: 10, left: -5, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} opacity={0.1} />
+                    <XAxis
+                        dataKey="tradeNumber"
+                        stroke="#64748b"
+                        fontSize={10}
+                        tickLine={false}
+                        axisLine={false}
+                        minTickGap={20}
+                        tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
+                        dy={5}
+                        label={{
+                            value: 'Trade #',
+                            position: 'insideBottomRight',
+                            offset: -5,
+                            fill: '#475569',
+                            fontSize: 10,
+                            fontFamily: 'var(--font-mono)'
+                        }}
+                    />
+                    <YAxis
+                        stroke="#64748b"
+                        fontSize={10}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => `${value}`}
+                        tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
+                        dx={-5}
+                        label={{
+                            value: 'P&L ($)',
+                            angle: -90,
+                            position: 'insideLeft',
+                            fill: '#475569',
+                            fontSize: 10,
+                            fontFamily: 'var(--font-mono)',
+                            style: { textAnchor: 'middle' }
+                        }}
+                    />
+                    <Tooltip
+                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f8fafc', borderRadius: '4px', fontSize: '11px', fontFamily: 'var(--font-mono)' }}
+                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                        formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Net Profit']}
+                        labelFormatter={(label) => `Trade #${label}`}
+                    />
+                    <Bar dataKey="pnl">
+                        {data.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? '#10b981' : '#f43f5e'} />
+                        ))}
+                    </Bar>
+                </BarChart>
+            </div>
+        </Card >
+    );
+}
+
 interface WinLossDistributionProps {
     data: any[];
     className?: string; // Added className
@@ -152,7 +256,7 @@ export function WinLossDistributionChart({ data, className }: WinLossDistributio
             <div className="flex-1 w-full min-h-0 pl-0">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} opacity={0.1} />
                         <XAxis
                             dataKey="range"
                             stroke="#64748b"
