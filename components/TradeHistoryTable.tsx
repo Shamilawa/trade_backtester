@@ -305,20 +305,18 @@ export default function TradeHistoryTable() {
                                                                         </div>
                                                                         <div className="grid grid-cols-2 gap-4 flex-1">
                                                                             {/* Entry Image Placeholder */}
-                                                                            <div className="border-2 border-dashed border-trade-border/40 rounded-lg flex flex-col items-center justify-center p-4 bg-trade-surface/10 hover:bg-trade-surface/30 hover:border-trade-primary/30 transition-all cursor-pointer group h-full">
-                                                                                <div className="h-10 w-10 rounded-full bg-trade-bg/50 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                                                                    <ImageIcon className="w-5 h-5 text-trade-text-muted group-hover:text-trade-primary transition-colors" />
-                                                                                </div>
-                                                                                <span className="text-xs font-medium text-trade-text-muted group-hover:text-trade-primary transition-colors">Add Entry Screenshot</span>
-                                                                            </div>
+                                                                            <ImageUploadPlaceholder
+                                                                                tradeId={log.id}
+                                                                                type="entry"
+                                                                                imageUrl={log.entryImage}
+                                                                            />
 
                                                                             {/* Exit Image Placeholder */}
-                                                                            <div className="border-2 border-dashed border-trade-border/40 rounded-lg flex flex-col items-center justify-center p-4 bg-trade-surface/10 hover:bg-trade-surface/30 hover:border-trade-primary/30 transition-all cursor-pointer group h-full">
-                                                                                <div className="h-10 w-10 rounded-full bg-trade-bg/50 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                                                                    <ImageIcon className="w-5 h-5 text-trade-text-muted group-hover:text-trade-primary transition-colors" />
-                                                                                </div>
-                                                                                <span className="text-xs font-medium text-trade-text-muted group-hover:text-trade-primary transition-colors">Add Exit Screenshot</span>
-                                                                            </div>
+                                                                            <ImageUploadPlaceholder
+                                                                                tradeId={log.id}
+                                                                                type="exit"
+                                                                                imageUrl={log.exitImage}
+                                                                            />
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -395,3 +393,77 @@ export default function TradeHistoryTable() {
         </div >
     );
 }
+
+const ImageUploadPlaceholder = ({ tradeId, type, imageUrl }: { tradeId: string, type: 'entry' | 'exit', imageUrl?: string }) => {
+    const { uploadTradeImage } = useTradeStore();
+    const [isUploading, setIsUploading] = React.useState(false);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            await uploadTradeImage(tradeId, type, file);
+        } catch (error) {
+            console.error("Upload failed", error);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleClick = () => {
+        if (!imageUrl && !isUploading) {
+            fileInputRef.current?.click();
+        } else if (imageUrl) {
+            window.open(imageUrl, '_blank');
+        }
+    };
+
+    return (
+        <div
+            onClick={handleClick}
+            className={cn(
+                "border-2 border-dashed border-trade-border/40 rounded-lg flex flex-col items-center justify-center p-4 bg-trade-surface/10 hover:bg-trade-surface/30 hover:border-trade-primary/30 transition-all cursor-pointer group h-full relative overflow-hidden",
+                imageUrl && "border-solid border-trade-border/60 p-0"
+            )}
+        >
+            <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleFileChange}
+            />
+
+            {imageUrl ? (
+                <div className="w-full h-full relative group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imageUrl} alt={`${type} screenshot`} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-white text-xs font-medium flex items-center gap-2">
+                            <ArrowUpRight size={14} /> View
+                        </span>
+                    </div>
+                </div>
+            ) : (
+                <>
+                    {isUploading ? (
+                        <div className="animate-pulse flex flex-col items-center">
+                            <div className="h-8 w-8 rounded-full border-2 border-trade-primary border-t-transparent animate-spin mb-2" />
+                            <span className="text-xs text-trade-text-muted">Uploading...</span>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="h-10 w-10 rounded-full bg-trade-bg/50 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                <ImageIcon className="w-5 h-5 text-trade-text-muted group-hover:text-trade-primary transition-colors" />
+                            </div>
+                            <span className="text-xs font-medium text-trade-text-muted group-hover:text-trade-primary transition-colors capitalize">Add {type} Screenshot</span>
+                        </>
+                    )}
+                </>
+            )}
+        </div>
+    );
+};

@@ -52,6 +52,9 @@ export async function saveLog(sessionId: string, log: TradeLog | TransferLog) {
         sessionId: sessionId,
         type: log.type,
         data: log, // Storing the whole object as JSON
+    }).onConflictDoUpdate({
+        target: logs.id,
+        set: { data: log },
     });
 }
 

@@ -63,6 +63,8 @@ export interface TradeLog extends BaseLog {
   type: 'TRADE';
   input: TradeInput;
   results: CalculationResult;
+  entryImage?: string; // URL of the uploaded entry screenshot
+  exitImage?: string; // URL of the uploaded exit screenshot
 }
 
 export interface TransferLog extends BaseLog {

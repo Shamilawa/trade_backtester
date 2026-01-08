@@ -27,6 +27,8 @@ interface TradeStore {
     logTrade: () => void;
     addTransaction: (type: 'WITHDRAWAL' | 'DEPOSIT', amount: number, note?: string) => void;
     deleteLog: (id: string) => void;
+    updateLog: (log: TradeLog | TransferLog) => void;
+    uploadTradeImage: (tradeId: string, type: 'entry' | 'exit', file: File) => Promise<string | undefined>;
     clearHistory: () => void; // Clears ONLY active session history
     initializeSession: (session: Session, history: HistoryLog[]) => void;
 }
@@ -248,6 +250,48 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
         });
     },
 
+    updateLog: (updatedLog: TradeLog | TransferLog) => {
+        set((state) => ({
+            history: state.history.map((log) => (log.id === updatedLog.id ? updatedLog : log)),
+        }));
+        // Persist to DB or API
+        // This is handled by saveLog in the component usually, but we might want to ensure store sync
+    },
+    uploadTradeImage: async (tradeId: string, type: 'entry' | 'exit', file: File) => {
+        const { history } = get();
+        const tradeLog = history.find((log) => log.id === tradeId) as TradeLog;
+        if (!tradeLog) return;
+
+        try {
+            // Optimistic update of loading state could go here if we tracked it in the store
+            // For now, we'll let the component handle the loading state
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Dynamic import to avoid server-side issues in store if used inappropriately, 
+            // though store is client-side usually. 
+            // Better to pass the action result or handle in component?
+            // Let's import the action directly at top of file, assuming valid in Next.js environment
+            const { uploadImage } = await import('@/app/actions/upload');
+            const url = await uploadImage(formData);
+
+            const updatedLog = { ...tradeLog, [type === 'entry' ? 'entryImage' : 'exitImage']: url };
+
+            set((state) => ({
+                history: state.history.map((log) => (log.id === tradeId ? updatedLog : log)),
+            }));
+
+            // Persist change
+            const { saveLog } = await import('@/app/actions');
+            await saveLog(updatedLog.sessionId, updatedLog);
+
+            return url;
+        } catch (error) {
+            console.error("Failed to upload image:", error);
+            throw error;
+        }
+    },
     clearHistory: () => {
         set((state) => ({
             history: state.history.filter(t => t.sessionId !== state.activeSessionId)
