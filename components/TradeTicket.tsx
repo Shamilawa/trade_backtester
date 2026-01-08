@@ -43,7 +43,7 @@ export default function TradeTicket() {
 
     return (
         <div className="h-full flex flex-col bg-trade-bg text-trade-text select-none font-sans">
-            <div className="h-[50px] flex-shrink-0 flex items-center justify-between px-4 border-b border-trade-border bg-trade-bg z-10">
+            <div className="h-[50px] flex-shrink-0 flex items-center justify-between px-1 border-b border-trade-border bg-trade-bg z-10">
                 <div className="flex items-center gap-2">
                     <div className="bg-trade-primary/20 p-1.5 rounded text-trade-primary">
                         <ArrowDownUp size={16} />
@@ -87,10 +87,10 @@ export default function TradeTicket() {
                 </div>
             </div>
 
-            <div className="flex-1 flex flex-col p-3 overflow-hidden">
+            <div className="flex-1 flex flex-col py-2 px-1 overflow-hidden">
 
                 {/* Buy / Sell Toggle */}
-                <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="grid grid-cols-2 gap-2 mb-2">
                     <button
                         onClick={() => setTradeDirection('long')}
                         className={cn(
@@ -215,7 +215,7 @@ export default function TradeTicket() {
                     )}
 
                     {/* Partial Exits Section */}
-                    <div className="pt-2">
+                    <div>
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-xs text-trade-text-muted font-medium flex items-center gap-2">
                                 Partial Exits
