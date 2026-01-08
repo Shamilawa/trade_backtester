@@ -97,7 +97,8 @@ export function calculateTrade(input: TradeInput, exits: Exit[]): CalculationRes
                 grossProfit: 0,
                 commission: 0,
                 netProfit: 0,
-                percentClosedOfRemaining: exit.percentToClose
+                percentClosedOfRemaining: exit.percentToClose,
+                remainingLotsAfter: Number(currentLots.toFixed(2)) // No change
             });
             continue;
         }
@@ -110,6 +111,9 @@ export function calculateTrade(input: TradeInput, exits: Exit[]): CalculationRes
 
         const netProfit = grossProfit - commission;
 
+        // Calculate remaining lots after this exit
+        const remainingAfter = Math.max(0, currentLots - lotsToClose);
+
         exitResults.push({
             exitId: exit.id,
             lotsClosed: lotsToClose,
@@ -117,7 +121,9 @@ export function calculateTrade(input: TradeInput, exits: Exit[]): CalculationRes
             grossProfit,
             commission,
             netProfit,
-            percentClosedOfRemaining: exit.percentToClose
+            percentClosedOfRemaining: exit.percentToClose,
+            // Format to 2 decimals
+            remainingLotsAfter: Number(remainingAfter.toFixed(2))
         });
 
         totalNetProfit += netProfit;

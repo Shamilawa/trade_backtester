@@ -132,7 +132,7 @@ export default function TradeTicket() {
                                 value={input.entryPrice || ''}
                                 onChange={(e) => setInput('entryPrice', e.target.valueAsNumber)}
                                 className={cn(
-                                    "font-mono text-lg font-medium transition-all h-11 bg-trade-surface-hover/50 border-trade-border text-trade-text-primary focus-visible:ring-2 focus-visible:ring-trade-primary/50 focus-visible:border-trade-primary",
+                                    "font-mono text-sm font-medium transition-all h-8 bg-trade-surface-hover/50 border-trade-border text-trade-text-primary focus-visible:ring-2 focus-visible:ring-trade-primary/50 focus-visible:border-trade-primary",
                                     (hasSubmitted && !isValidEntry) && "border-trade-loss focus-visible:ring-trade-loss",
                                     isValidEntry && (tradeDirection === 'long' ? "text-trade-success" : "text-trade-loss")
                                 )}
@@ -152,7 +152,7 @@ export default function TradeTicket() {
                                 value={input.stopLossPrice || ''}
                                 onChange={(e) => setInput('stopLossPrice', e.target.valueAsNumber)}
                                 className={cn(
-                                    "font-mono transition-all h-11 bg-trade-surface-hover/50 border-trade-border text-trade-text-primary focus-visible:ring-2 focus-visible:ring-trade-primary/50 focus-visible:border-trade-primary",
+                                    "font-mono text-sm transition-all h-8 bg-trade-surface-hover/50 border-trade-border text-trade-text-primary focus-visible:ring-2 focus-visible:ring-trade-primary/50 focus-visible:border-trade-primary",
                                     (hasSubmitted && (!isValidSL || !isDirectionValid)) && "border-trade-loss focus-visible:ring-trade-loss"
                                 )}
                                 placeholder="0.00000"
@@ -180,7 +180,7 @@ export default function TradeTicket() {
                             value={input.riskMode === 'percent' ? (input.initialRiskPercent || '') : (input.riskCashAmount || '')}
                             onChange={(e) => setInput(input.riskMode === 'percent' ? 'initialRiskPercent' : 'riskCashAmount', e.target.valueAsNumber)}
                             className={cn(
-                                "h-10 bg-trade-surface-hover/50 border-trade-border text-trade-text-primary font-mono text-sm focus:border-trade-primary/50 focus:ring-1 focus:ring-trade-primary/20 transition-all",
+                                "h-8 bg-trade-surface-hover/50 border-trade-border text-trade-text-primary font-mono text-sm focus:border-trade-primary/50 focus:ring-1 focus:ring-trade-primary/20 transition-all",
                                 (hasSubmitted && !isValidRisk) && "border-trade-loss text-trade-loss"
                             )}
                             placeholder={input.riskMode === 'percent' ? "1.0" : "100"}
@@ -195,11 +195,11 @@ export default function TradeTicket() {
                             <Label className="text-[10px] text-trade-text-muted uppercase tracking-wider font-semibold">Position Size</Label>
                             <span className="text-[10px] text-trade-text-muted italic">Auto-calculated</span>
                         </div>
-                        <div className="h-12 px-3 flex items-center justify-between bg-trade-surface border border-trade-border rounded text-trade-text-primary font-mono shadow-inner">
-                            <span className={cn("text-xl font-bold tracking-tight", isValidLots ? "text-trade-primary" : "text-trade-text-muted")}>
+                        <div className="h-9 px-3 flex items-center justify-between bg-trade-surface border border-trade-border rounded text-trade-text-primary font-mono shadow-inner">
+                            <span className={cn("text-base font-bold tracking-tight", isValidLots ? "text-trade-primary" : "text-trade-text-muted")}>
                                 {results?.initialLots || '0.00'}
                             </span>
-                            <span className="text-[10px] font-bold text-trade-text-muted bg-trade-bg px-1.5 py-0.5 rounded border border-trade-border">LOTS</span>
+                            <span className="text-[9px] font-bold text-trade-text-muted bg-trade-bg px-1.5 py-0.5 rounded border border-trade-border">LOTS</span>
                         </div>
                     </div>
 
@@ -236,57 +236,67 @@ export default function TradeTicket() {
                         <div className="space-y-2">
                             {exits.map((exit, index) => {
                                 return (
-                                    <div key={exit.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center bg-trade-surface/30 p-2 rounded border border-trade-border/50">
-                                        <div className="space-y-0.5">
-                                            <Label className='text-[8px] text-trade-text-muted uppercase'>Price</Label>
-                                            <Input
-                                                type="number"
-                                                value={exit.price || ''}
-                                                onChange={(e) => updateExit(exit.id, 'price', e.target.valueAsNumber)}
-                                                className="h-7 text-xs font-mono bg-trade-bg border-trade-border focus-visible:ring-trade-primary"
-                                            />
+                                    <div key={exit.id} className="bg-trade-surface/30 p-2 rounded border border-trade-border/50 relative">
+                                        <div className="absolute top-1 right-2 text-[9px] font-bold text-trade-text-muted/50 tracking-wider">
+                                            EXIT {index + 1}
                                         </div>
-                                        <div className="space-y-0.5">
-                                            <Label className='text-[8px] text-trade-text-muted uppercase'>% Close</Label>
-                                            <Input
-                                                type="number"
-                                                value={exit.percentToClose}
-                                                onChange={(e) => updateExit(exit.id, 'percentToClose', e.target.valueAsNumber)}
-                                                className="h-7 text-xs font-mono bg-trade-bg border-trade-border focus-visible:ring-trade-primary"
-                                            />
+                                        <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end mt-1">
+                                            <div className="space-y-0.5">
+                                                <Label className='text-[8px] text-trade-text-muted uppercase'>Price</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={exit.price || ''}
+                                                    onChange={(e) => updateExit(exit.id, 'price', e.target.valueAsNumber)}
+                                                    className="h-7 text-xs font-mono bg-trade-bg border-trade-border focus-visible:ring-trade-primary w-full"
+                                                />
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <Label className='text-[8px] text-trade-text-muted uppercase'>% Close</Label>
+                                                <div className="relative">
+                                                    <Input
+                                                        type="number"
+                                                        value={exit.percentToClose}
+                                                        onChange={(e) => updateExit(exit.id, 'percentToClose', e.target.valueAsNumber)}
+                                                        className="h-7 text-xs font-mono bg-trade-bg border-trade-border focus-visible:ring-trade-primary w-full pr-6"
+                                                    />
+                                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-trade-text-muted">%</span>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                onClick={() => removeExit(exit.id)}
+                                                variant="ghost"
+                                                className="h-7 w-7 p-0 text-trade-text-muted hover:text-trade-loss hover:bg-trade-loss/10"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </Button>
                                         </div>
-                                        <Button
-                                            onClick={() => removeExit(exit.id)}
-                                            variant="ghost"
-                                            className="h-7 w-7 p-0 mt-3 text-trade-text-muted hover:text-trade-loss hover:bg-trade-loss/10"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </Button>
+
+                                        {/* Remaining Lots & P&L Display */}
+                                        {results && (
+                                            <div className="flex justify-between items-center mt-2 px-1 border-t border-trade-border/30 pt-2">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[8px] text-trade-text-muted uppercase tracking-wider">Remaining</span>
+                                                    <span className="text-[10px] font-mono text-trade-text-primary">
+                                                        {results.exits.find(e => e.exitId === exit.id)?.remainingLotsAfter.toFixed(2) ?? '---'} Lots
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-[8px] text-trade-text-muted uppercase tracking-wider">Projected P&L</span>
+                                                    <span className={cn(
+                                                        "text-[10px] font-mono font-medium",
+                                                        (results.exits.find(e => e.exitId === exit.id)?.netProfit ?? 0) >= 0 ? "text-trade-success" : "text-trade-loss"
+                                                    )}>
+                                                        {(results.exits.find(e => e.exitId === exit.id)?.netProfit ?? 0) >= 0 ? '+' : ''}
+                                                        ${results.exits.find(e => e.exitId === exit.id)?.netProfit.toFixed(2) ?? '0.00'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
                         </div>
                     </div>
-
-                    {/* P&L Breakdown */}
-                    {results && exits.length > 0 && (
-                        <div className="mt-2 space-y-2 bg-trade-bg/50 rounded border border-trade-border p-3">
-                            <div className="text-[10px] uppercase text-trade-text-muted tracking-wide font-medium">Projection</div>
-                            <div className="space-y-1">
-                                {results.exits.map((exitResult, idx) => (
-                                    <div key={exitResult.exitId} className="flex justify-between text-xs items-center">
-                                        <div className="text-trade-text-secondary flex items-center">
-                                            <span className="w-4 text-trade-text-muted text-[10px]">{idx + 1}.</span>
-                                            <span>Target ({exitResult.percentClosedOfRemaining}%)</span>
-                                        </div>
-                                        <span className={cn("font-mono", exitResult.netProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
-                                            {exitResult.netProfit >= 0 ? '+' : ''}${exitResult.netProfit.toFixed(2)}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {/* Footer Action */}

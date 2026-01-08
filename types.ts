@@ -32,6 +32,7 @@ export interface ExitResult {
   commission: number;
   netProfit: number;
   percentClosedOfRemaining: number;
+  remainingLotsAfter: number;
 }
 
 export interface CalculationResult {
