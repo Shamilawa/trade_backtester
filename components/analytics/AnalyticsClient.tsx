@@ -59,15 +59,20 @@ export default function AnalyticsClient({ session, initialLogs }: { session: Ses
                 <KeyMetrics metrics={metrics} />
 
                 {/* Charts Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2">
-                        <EquityCurveChart data={equityCurve} />
+                <div className="flex flex-col gap-6">
+                    {/* Top Row: Equity + Drawdown */}
+                    <div className="flex flex-col lg:flex-row gap-6 h-auto lg:h-[400px]">
+                        <div className="w-full lg:w-[60%] h-[400px] lg:h-full">
+                            <EquityCurveChart data={equityCurve} className="h-full" />
+                        </div>
+                        <div className="w-full lg:w-[40%] h-[300px] lg:h-full">
+                            <DrawdownChart data={equityCurve} className="h-full" />
+                        </div>
                     </div>
-                    <div>
-                        <DrawdownChart data={equityCurve} />
-                    </div>
-                    <div>
-                        <WinLossDistributionChart data={winLossDistribution} />
+
+                    {/* Bottom Row: Distribution */}
+                    <div className="w-full h-[300px]">
+                        <WinLossDistributionChart data={winLossDistribution} className="h-full" />
                     </div>
                 </div>
 

@@ -22,11 +22,11 @@ export function AnalyticsHeader({
     tradeCount
 }: AnalyticsHeaderProps) {
     return (
-        <Card className="flex flex-col md:flex-row items-center justify-between p-3 border-b border-trade-border bg-trade-surface/50 backdrop-blur-md rounded-none md:rounded-t-lg">
+        <Card className="flex flex-col md:flex-row items-center justify-between p-3 border-b border-trade-border bg-trade-surface/50 backdrop-blur-md rounded-none md:rounded-t-[6px]">
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                     <AreaChart className="w-4 h-4 text-trade-primary" />
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Analytics</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-trade-text-secondary">Analytics</span>
                     <span className="text-xs text-trade-text-muted px-2 py-0.5 bg-trade-bg rounded-md border border-trade-border font-mono">
                         {sessionName}
                     </span>

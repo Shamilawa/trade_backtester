@@ -75,12 +75,12 @@ export default function TradeHistoryTable() {
             {/* Analytics Section */}
             <AnalyticsCards history={sessionHistory} session={activeSession} />
 
-            <Card className="flex-1 flex flex-col border border-trade-border bg-trade-surface/20 shadow-none rounded-none md:rounded-lg overflow-hidden backdrop-blur-sm">
+            <Card className="flex-1 flex flex-col border border-trade-border bg-trade-surface/20 shadow-none rounded-none md:rounded-[6px] overflow-hidden backdrop-blur-sm">
                 <div className="flex items-center justify-between p-3 border-b border-trade-border bg-trade-surface/50 backdrop-blur-md">
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                             <History className="w-4 h-4 text-trade-primary" />
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Trade Log</span>
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-trade-text-secondary">Trade Log</span>
                             <span className="text-xs text-trade-text-muted px-2 py-0.5 bg-trade-bg rounded-md border border-trade-border font-mono">
                                 {totalTrades}
                             </span>
