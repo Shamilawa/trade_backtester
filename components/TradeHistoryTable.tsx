@@ -3,7 +3,7 @@
 import React from 'react';
 import { useTradeStore } from '@/store/tradeStore';
 import { Card, CardContent, CardHeader, CardTitle, Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/common';
-import { Trash2, History, TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Trash2, History, TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AnalyticsCards from './AnalyticsCards';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -17,6 +17,17 @@ export default function TradeHistoryTable() {
     const [typeFilter, setTypeFilter] = React.useState<string>('ALL');
 
     const [deleteId, setDeleteId] = React.useState<string | null>(null);
+    const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
+
+    const toggleRow = (id: string) => {
+        const newExpanded = new Set(expandedRows);
+        if (newExpanded.has(id)) {
+            newExpanded.delete(id);
+        } else {
+            newExpanded.add(id);
+        }
+        setExpandedRows(newExpanded);
+    };
 
     const handleDeleteClick = (id: string) => {
         setDeleteId(id);
@@ -38,10 +49,7 @@ export default function TradeHistoryTable() {
     const sessionHistory = history.filter(log => {
         if (log.sessionId !== activeSessionId) return false;
 
-        // Asset Filter: Matches Asset if Trade, or hides Transfer if specific asset selected?
-        // Usually Transfer (Deposit/Withdraw) is "Account Level", not Asset Level.
-        // So if filtering for EURUSD, we probably don't want to see Withdrawals? Or do we?
-        // Let's assume strict filtering: If EURUSD selected, only show EURUSD trades.
+        // Asset Filter
         if (assetFilter !== 'ALL') {
             if (log.type !== 'TRADE') return false; // Transfers have no asset
             if (log.input.asset !== assetFilter) return false;
@@ -51,17 +59,10 @@ export default function TradeHistoryTable() {
         if (typeFilter !== 'ALL') {
             if (typeFilter === 'TRADE' && log.type !== 'TRADE') return false;
             if (typeFilter === 'TRANSFER' && (log.type === 'TRADE')) return false;
-            // Note: TRANSFER covers WITHDRAWAL and DEPOSIT
         }
 
         return true;
     });
-
-    // Calculate Stats for Header (Based on FILTERED view or GLOBAL session view? usually Global is better for "Net P/L" context, but table shows filtered.)
-    // Let's keep the Stats based on the GLOBAL session (before filters) so users always know their true P/L, 
-    // OR matching the view. Matching the view is often less confusing.
-    // However, "Net P/L" of just EURUSD trades is useful.
-    // Let's us the filtered list for stats.
 
     const displayedTrades = sessionHistory.filter(log => log.type === 'TRADE');
     const totalTrades = displayedTrades.length;
@@ -131,14 +132,15 @@ export default function TradeHistoryTable() {
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10 bg-trade-surface border-b border-trade-border text-xs text-trade-text-secondary uppercase tracking-wider">
                             <tr>
-                                <th className="px-4 py-2 font-medium w-32">Time</th>
-                                <th className="px-4 py-2 font-medium w-24 ">Asset</th>
+                                <th className="px-4 py-2 w-8"></th>
+                                <th className="px-4 py-2 font-medium w-32">Date</th>
+                                <th className="px-4 py-2 font-medium w-24">Asset</th>
                                 <th className="px-4 py-2 font-medium w-20 text-center">Side</th>
                                 <th className="px-4 py-2 font-medium text-center w-24">Lots</th>
                                 <th className="px-4 py-2 font-medium text-center w-24">Entry</th>
                                 <th className="px-4 py-2 font-medium text-center w-16">R Gain</th>
                                 <th className="px-4 py-2 font-medium text-center w-16">% Gain</th>
-                                <th className="px-4 py-2 font-medium text-center w-16">Commisions</th>
+                                <th className="px-4 py-2 font-medium text-center w-16">Comm</th>
                                 <th className="px-4 py-2 font-medium text-center w-24">Net P/L</th>
                                 <th className="px-4 py-2 font-medium text-right w-32">Balance</th>
                                 <th className="px-4 py-2 font-medium w-10"></th>
@@ -147,7 +149,7 @@ export default function TradeHistoryTable() {
                         <tbody className="divide-y divide-trade-border bg-trade-bg/50">
                             {sessionHistory.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-12 text-center">
+                                    <td colSpan={12} className="px-6 py-12 text-center">
                                         <div className="flex flex-col items-center justify-center gap-2 text-trade-text-muted">
                                             <History className="w-8 h-8 opacity-20" />
                                             <p className="text-sm">No trades executed.</p>
@@ -159,168 +161,186 @@ export default function TradeHistoryTable() {
                                     if (log.type === 'TRADE') {
                                         const isProfit = log.results.totalNetProfit >= 0;
                                         const isLong = log.input.entryPrice > log.input.stopLossPrice;
+                                        const isExpanded = expandedRows.has(log.id);
 
                                         return (
-                                            <tr key={log.id} className="group hover:bg-trade-surface-hover/50 transition-colors text-xs text-trade-text-primary">
-                                                {/* Time */}
-                                                <td className="px-4 py-2 whitespace-nowrap font-mono">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-trade-text-primary text-xs">
-                                                            {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                            <React.Fragment key={log.id}>
+                                                {/* Main Row */}
+                                                <tr
+                                                    className={cn(
+                                                        "group hover:bg-trade-surface-hover/50 transition-colors text-xs text-trade-text-primary cursor-pointer",
+                                                        isExpanded && "bg-trade-surface-hover/30"
+                                                    )}
+                                                    onClick={() => toggleRow(log.id)}
+                                                >
+                                                    <td className="px-4 py-2 text-center">
+                                                        <Button variant="ghost" className="h-6 w-6 p-0 hover:bg-transparent">
+                                                            {isExpanded ? <ArrowDownRight size={14} className="text-trade-primary" /> : <ArrowUpRight size={14} className="text-trade-text-muted" />}
+                                                        </Button>
+                                                    </td>
+                                                    <td className="px-4 py-2 whitespace-nowrap font-mono">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-trade-text-primary text-xs font-semibold">
+                                                                {new Date(log.date).toLocaleDateString([], { month: 'short', day: '2-digit' })}
+                                                            </span>
+                                                            <span className="text-[10px] text-trade-text-muted font-mono">
+                                                                {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-2 font-semibold tracking-wide">
+                                                        {log.input.asset}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center">
+                                                        <span className={cn(
+                                                            "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] font-medium uppercase text-[10px] border",
+                                                            isLong
+                                                                ? "bg-trade-success/10 text-trade-success border-trade-success/20"
+                                                                : "bg-trade-loss/10 text-trade-loss border-trade-loss/20"
+                                                        )}>
+                                                            {isLong ? 'Buy' : 'Sell'}
                                                         </span>
-                                                        <span className="text-[10px] text-trade-text-muted opacity-70">
-                                                            {new Date(log.date).toLocaleDateString([], { month: 'short', day: '2-digit' })}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">
+                                                        {log.results.initialLots}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">
+                                                        {log.input.entryPrice}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center font-mono font-medium">
+                                                        <span className={cn(isProfit ? "text-trade-success" : "text-trade-loss")}>
+                                                            {log.results.initialRiskAmount > 0
+                                                                ? (log.results.totalNetProfit / log.results.initialRiskAmount).toFixed(1) + 'R'
+                                                                : '-'}
                                                         </span>
-                                                    </div>
-                                                </td>
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center font-mono font-medium">
+                                                        <span className={cn(isProfit ? "text-trade-success" : "text-trade-loss")}>
+                                                            {((log.results.totalNetProfit / log.input.accountBalance) * 100).toFixed(2)}%
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center font-mono font-medium">
+                                                        <span className='text-trade-loss'>
+                                                            ${log.results.exits.reduce((acc, e) => acc + e.commission, 0).toFixed(2)}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center font-mono font-medium">
+                                                        <span className={cn(
+                                                            isProfit ? "text-trade-success" : "text-trade-loss"
+                                                        )}>
+                                                            ${isProfit ? '+' : ''}{log.results.totalNetProfit.toFixed(2)}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-2 text-right font-mono text-trade-text-muted">
+                                                        ${log.results.finalAccountBalance.toFixed(2)}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                                                        <button
+                                                            onClick={() => handleDeleteClick(log.id)}
+                                                            className="opacity-0 group-hover:opacity-100 text-trade-text-muted hover:text-trade-loss transition-opacity p-1"
+                                                            title="Delete Log"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
 
-                                                {/* Asset */}
-                                                <td className="px-4 py-2 font-semibold tracking-wide">
-                                                    {log.input.asset}
-                                                </td>
-
-                                                {/* Side */}
-                                                <td className="px-4 py-2 text-center">
-                                                    <span className={cn(
-                                                        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] font-medium uppercase text-[10px] border",
-                                                        isLong
-                                                            ? "bg-trade-success/10 text-trade-success border-trade-success/20"
-                                                            : "bg-trade-loss/10 text-trade-loss border-trade-loss/20"
-                                                    )}>
-                                                        {isLong ? 'Buy' : 'Sell'}
-                                                    </span>
-                                                </td>
-
-                                                {/* Volume */}
-                                                <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">
-                                                    {log.results.initialLots}
-                                                </td>
-
-                                                {/* Entry Price */}
-                                                <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">
-                                                    {log.input.entryPrice}
-                                                </td>
-
-                                                {/* R Gain */}
-                                                <td className="px-4 py-2 text-center font-mono font-medium">
-                                                    <TooltipProvider>
-                                                        <Tooltip delayDuration={300}>
-                                                            <TooltipTrigger asChild>
-                                                                <span className={cn(isProfit ? "text-trade-success" : "text-trade-loss", "cursor-help decoration-dotted underline underline-offset-2 decoration-trade-text-muted/30")}>
-                                                                    {log.results.initialRiskAmount > 0
-                                                                        ? (log.results.totalNetProfit / log.results.initialRiskAmount).toFixed(1) + 'R'
-                                                                        : '-'}
-                                                                </span>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent className="bg-trade-surface border-trade-border p-3">
-                                                                <div className="flex flex-col gap-2">
-                                                                    <div className="flex justify-between items-center gap-4 text-xs">
-                                                                        <span className="text-trade-text-muted">Net R (w/ Comm):</span>
-                                                                        <span className={cn("font-mono font-medium", log.results.totalNetProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
-                                                                            {log.results.initialRiskAmount > 0
-                                                                                ? (log.results.totalNetProfit / log.results.initialRiskAmount).toFixed(2) + 'R'
-                                                                                : '-'}
-                                                                        </span>
+                                                {/* Expanded Details Row */}
+                                                {isExpanded && (
+                                                    <tr className="bg-trade-surface/10 border-b border-trade-border/50">
+                                                        <td colSpan={12} className="p-0">
+                                                            <div className="p-4 bg-trade-bg/30 inner-shadow">
+                                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                                    {/* Breakdown Table */}
+                                                                    <div className="flex flex-col h-full">
+                                                                        <div className="text-[10px] uppercase font-bold text-trade-text-muted mb-2 tracking-wider flex items-center gap-2">
+                                                                            <ArrowDownRight size={12} /> Partial Exit Breakdown
+                                                                        </div>
+                                                                        <div className="overflow-x-auto border border-trade-border/30 rounded-md bg-trade-surface/20 flex-1">
+                                                                            <table className="w-full text-left text-xs h-full">
+                                                                                <thead className="text-trade-text-muted border-b border-trade-border/30 bg-trade-surface/30 sticky top-0">
+                                                                                    <tr>
+                                                                                        <th className="py-2 px-3 font-medium w-16">Exit #</th>
+                                                                                        <th className="py-2 px-3 font-medium">Lots</th>
+                                                                                        <th className="py-2 px-3 font-medium">Pips</th>
+                                                                                        <th className="py-2 px-3 font-medium">Gross</th>
+                                                                                        <th className="py-2 px-3 font-medium">Comm</th>
+                                                                                        <th className="py-2 px-3 font-medium">Net P&L</th>
+                                                                                        <th className="py-2 px-3 font-medium text-center">R</th>
+                                                                                        <th className="py-2 px-3 font-medium text-center">%</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody className="divide-y divide-trade-border/10">
+                                                                                    {log.results.exits.map((exit, i) => (
+                                                                                        <tr key={exit.exitId} className="hover:bg-trade-surface-hover/20 font-mono text-[11px]">
+                                                                                            <td className="py-1.5 px-3 text-trade-text-secondary">#{i + 1}</td>
+                                                                                            <td className="py-1.5 px-3 text-trade-text-secondary">{exit.lotsClosed.toFixed(2)}</td>
+                                                                                            <td className="py-1.5 px-3 text-trade-text-secondary">{exit.pipsCaptured.toFixed(1)}</td>
+                                                                                            <td className={cn("py-1.5 px-3", exit.grossProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
+                                                                                                ${exit.grossProfit.toFixed(2)}
+                                                                                            </td>
+                                                                                            <td className="py-1.5 px-3 text-trade-loss">-${exit.commission.toFixed(2)}</td>
+                                                                                            <td className={cn("py-1.5 px-3 font-medium", exit.netProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
+                                                                                                ${exit.netProfit.toFixed(2)}
+                                                                                            </td>
+                                                                                            <td className={cn("py-1.5 px-3 text-center", exit.netProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
+                                                                                                {log.results.initialRiskAmount > 0
+                                                                                                    ? (exit.netProfit / log.results.initialRiskAmount).toFixed(1) + 'R'
+                                                                                                    : '-'}
+                                                                                            </td>
+                                                                                            <td className={cn("py-1.5 px-3 text-center", exit.netProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
+                                                                                                {((exit.netProfit / log.input.accountBalance) * 100).toFixed(2)}%
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    ))}
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="flex justify-between items-center gap-4 text-xs">
-                                                                        <span className="text-trade-text-muted">Gross R (No Comm):</span>
-                                                                        <span className={cn("font-mono font-medium",
-                                                                            log.results.exits.reduce((acc, e) => acc + e.grossProfit, 0) >= 0 ? "text-trade-success" : "text-trade-loss"
-                                                                        )}>
-                                                                            {log.results.initialRiskAmount > 0
-                                                                                ? (log.results.exits.reduce((acc, e) => acc + e.grossProfit, 0) / log.results.initialRiskAmount).toFixed(2) + 'R'
-                                                                                : '-'}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="border-t border-trade-border my-1"></div>
-                                                                    <div className="flex justify-between items-center gap-4 text-xs">
-                                                                        <span className="text-trade-text-muted">Comm Paid:</span>
-                                                                        <span className="font-mono text-trade-loss">
-                                                                            -${log.results.exits.reduce((acc, e) => acc + e.commission, 0).toFixed(2)}
-                                                                        </span>
+
+                                                                    {/* Image Placeholders */}
+                                                                    <div className="flex flex-col h-full">
+                                                                        <div className="text-[10px] uppercase font-bold text-trade-text-muted mb-2 tracking-wider flex items-center gap-2">
+                                                                            <ImageIcon size={12} /> Screenshots
+                                                                        </div>
+                                                                        <div className="grid grid-cols-2 gap-4 flex-1">
+                                                                            {/* Entry Image Placeholder */}
+                                                                            <div className="border-2 border-dashed border-trade-border/40 rounded-lg flex flex-col items-center justify-center p-4 bg-trade-surface/10 hover:bg-trade-surface/30 hover:border-trade-primary/30 transition-all cursor-pointer group h-full">
+                                                                                <div className="h-10 w-10 rounded-full bg-trade-bg/50 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                                                                    <ImageIcon className="w-5 h-5 text-trade-text-muted group-hover:text-trade-primary transition-colors" />
+                                                                                </div>
+                                                                                <span className="text-xs font-medium text-trade-text-muted group-hover:text-trade-primary transition-colors">Add Entry Screenshot</span>
+                                                                            </div>
+
+                                                                            {/* Exit Image Placeholder */}
+                                                                            <div className="border-2 border-dashed border-trade-border/40 rounded-lg flex flex-col items-center justify-center p-4 bg-trade-surface/10 hover:bg-trade-surface/30 hover:border-trade-primary/30 transition-all cursor-pointer group h-full">
+                                                                                <div className="h-10 w-10 rounded-full bg-trade-bg/50 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                                                                    <ImageIcon className="w-5 h-5 text-trade-text-muted group-hover:text-trade-primary transition-colors" />
+                                                                                </div>
+                                                                                <span className="text-xs font-medium text-trade-text-muted group-hover:text-trade-primary transition-colors">Add Exit Screenshot</span>
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                </td>
-
-                                                {/* % Gain */}
-                                                <td className="px-4 py-2 text-center font-mono font-medium">
-                                                    <TooltipProvider>
-                                                        <Tooltip delayDuration={300}>
-                                                            <TooltipTrigger asChild>
-                                                                <span className={cn(isProfit ? "text-trade-success" : "text-trade-loss", "cursor-help decoration-dotted underline underline-offset-2 decoration-trade-text-muted/30")}>
-                                                                    {((log.results.totalNetProfit / log.input.accountBalance) * 100).toFixed(2)}%
-                                                                </span>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent className="bg-trade-surface border-trade-border p-3">
-                                                                <div className="flex flex-col gap-2">
-                                                                    <div className="flex justify-between items-center gap-4 text-xs">
-                                                                        <span className="text-trade-text-muted">Net % (w/ Comm):</span>
-                                                                        <span className={cn("font-mono font-medium", log.results.totalNetProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
-                                                                            {((log.results.totalNetProfit / log.input.accountBalance) * 100).toFixed(2)}%
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="flex justify-between items-center gap-4 text-xs">
-                                                                        <span className="text-trade-text-muted">Gross % (No Comm):</span>
-                                                                        <span className={cn("font-mono font-medium",
-                                                                            log.results.exits.reduce((acc, e) => acc + e.grossProfit, 0) >= 0 ? "text-trade-success" : "text-trade-loss"
-                                                                        )}>
-                                                                            {((log.results.exits.reduce((acc, e) => acc + e.grossProfit, 0) / log.input.accountBalance) * 100).toFixed(2)}%
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                </td>
-
-                                                {/* commissions */}
-                                                <td className="px-4 py-2 text-center font-mono font-medium">
-                                                    <span className='text-trade-loss'>
-                                                        ${log.results.exits.reduce((acc, e) => acc + e.commission, 0).toFixed(2)}
-                                                    </span>
-                                                </td>
-
-                                                {/* Net P/L */}
-                                                <td className="px-4 py-2 text-center font-mono font-medium">
-                                                    <span className={cn(
-                                                        isProfit ? "text-trade-success" : "text-trade-loss"
-                                                    )}>
-                                                        ${isProfit ? '+' : ''}{log.results.totalNetProfit.toFixed(2)}
-                                                    </span>
-                                                </td>
-
-                                                {/* Balance */}
-                                                <td className="px-4 py-2 text-right font-mono text-trade-text-muted">
-                                                    ${log.results.finalAccountBalance.toFixed(2)}
-                                                </td>
-
-                                                {/* Actions */}
-                                                <td className="px-4 py-2 text-right">
-                                                    <button
-                                                        onClick={() => handleDeleteClick(log.id)}
-                                                        className="opacity-0 group-hover:opacity-100 text-trade-text-muted hover:text-trade-loss transition-opacity p-1"
-                                                        title="Delete Log"
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </td>
-                                            </tr>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
                                         );
                                     } else {
                                         // Transfer Log (Withdrawal/Deposit)
                                         const isWithdrawal = log.type === 'WITHDRAWAL';
                                         return (
                                             <tr key={log.id} className="group hover:bg-trade-surface-hover/50 transition-colors text-xs text-trade-text-primary">
+                                                <td className="px-4 py-2"></td>
                                                 <td className="px-4 py-2 whitespace-nowrap font-mono">
                                                     <div className="flex flex-col">
-                                                        <span className="text-trade-text-primary text-xs">
-                                                            {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-                                                        </span>
-                                                        <span className="text-[10px] text-trade-text-muted opacity-70">
+                                                        <span className="text-trade-text-primary text-xs font-semibold">
                                                             {new Date(log.date).toLocaleDateString([], { month: 'short', day: '2-digit' })}
+                                                        </span>
+                                                        <span className="text-[10px] text-trade-text-muted font-mono">
+                                                            {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
                                                         </span>
                                                     </div>
                                                 </td>
@@ -328,11 +348,11 @@ export default function TradeHistoryTable() {
                                                     {log.type === 'WITHDRAWAL' ? 'Withdrawal' : 'Deposit'} {log.note && <span className="text-[10px] text-trade-text-muted">({log.note})</span>}
                                                 </td>
                                                 <td className="px-4 py-2 text-center">-</td>
-                                                <td className="px-4 py-2 text-right font-mono text-trade-text-secondary">-</td>
-                                                <td className="px-4 py-2 text-right font-mono text-trade-text-secondary">-</td>
-                                                <td className="px-4 py-2 text-right font-mono text-trade-text-secondary">-</td>
-                                                <td className="px-4 py-2 text-right font-mono text-trade-text-secondary">-</td>
-                                                <td className="px-4 py-2 text-right font-mono font-medium">
+                                                <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">-</td>
+                                                <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">-</td>
+                                                <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">-</td>
+                                                <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">-</td>
+                                                <td className="px-4 py-2 text-center font-mono font-medium">
                                                     <span className={cn(isWithdrawal ? "text-trade-loss" : "text-trade-success")}>
                                                         {isWithdrawal ? '-' : '+'}{log.amount.toFixed(2)}
                                                     </span>
