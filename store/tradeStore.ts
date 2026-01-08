@@ -186,12 +186,13 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
             // Update the input balance for the NEXT trade automatically
             const newBalance = state.results.finalAccountBalance;
 
-            // Reset trade-specific fields, preserve configuration and Date
+            // Reset trade-specific fields
             const nextInput = {
                 ...state.input,
                 accountBalance: newBalance,
                 entryPrice: 0,
                 stopLossPrice: 0,
+                date: '',
             };
 
             return {
