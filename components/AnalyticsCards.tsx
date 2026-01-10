@@ -32,7 +32,7 @@ export default function AnalyticsCards({ history, session }: AnalyticsCardsProps
             {/* Balance Card */}
             <MetricCard
                 label="Balance"
-                value={`$${metrics.balance.toFixed(2)}`}
+                value={`$${metrics.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 subValue={metrics.netProfit >= 0 ? `+${metrics.netProfit.toFixed(2)} (${metrics.totalPercentageGain.toFixed(2)}%)` : `${metrics.netProfit.toFixed(2)} (${metrics.totalPercentageGain.toFixed(2)}%)`}
                 subValueColor={metrics.netProfit >= 0 ? 'text-trade-success' : 'text-trade-loss'}
                 icon={<Wallet className="w-4 h-4 text-trade-primary" />}
@@ -59,7 +59,7 @@ export default function AnalyticsCards({ history, session }: AnalyticsCardsProps
             {/* Max Drawdown */}
             <MetricCard
                 label="Max Drawdown"
-                value={`$${metrics.maxDrawdown.toFixed(2)}`}
+                value={`$${metrics.maxDrawdown.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 subValue={`${metrics.maxDrawdownPercent.toFixed(1)}%`}
                 subValueColor="text-trade-loss"
                 icon={<Activity className="w-4 h-4 text-trade-loss" />}
@@ -77,11 +77,11 @@ export default function AnalyticsCards({ history, session }: AnalyticsCardsProps
                     <div className="grid grid-cols-3 gap-2">
                         <div>
                             <div className="text-[11px] text-trade-text-muted mb-0.5 font-medium">Avg Win</div>
-                            <div className="text-base font-mono font-bold text-trade-success">${metrics.averageWin.toFixed(2)}</div>
+                            <div className="text-base font-mono font-bold text-trade-success">${metrics.averageWin.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         </div>
                         <div>
                             <div className="text-[11px] text-trade-text-muted mb-0.5 font-medium">Avg Loss</div>
-                            <div className="text-base font-mono font-bold text-trade-loss">${metrics.averageLoss.toFixed(2)}</div>
+                            <div className="text-base font-mono font-bold text-trade-loss">${metrics.averageLoss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         </div>
                         <div>
                             <div className="text-[11px] text-trade-text-muted mb-0.5 font-medium">Avg R:R</div>
