@@ -33,7 +33,7 @@ export default function AnalyticsCards({ history, session }: AnalyticsCardsProps
             <MetricCard
                 label="Balance"
                 value={`$${metrics.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                subValue={metrics.netProfit >= 0 ? `+${metrics.netProfit.toFixed(2)} (${metrics.totalPercentageGain.toFixed(2)}%)` : `${metrics.netProfit.toFixed(2)} (${metrics.totalPercentageGain.toFixed(2)}%)`}
+                subValue={metrics.netProfit >= 0 ? `+${metrics.netProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${metrics.totalPercentageGain.toFixed(2)}%)` : `${metrics.netProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${metrics.totalPercentageGain.toFixed(2)}%)`}
                 subValueColor={metrics.netProfit >= 0 ? 'text-trade-success' : 'text-trade-loss'}
                 icon={<Wallet className="w-4 h-4 text-trade-primary" />}
                 highlight
