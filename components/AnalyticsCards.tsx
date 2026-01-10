@@ -10,11 +10,12 @@ import {
     TrendingDown,
     Wallet,
     Activity,
-    PieChart,
     Scale,
     ArrowDownRight,
     ArrowUpRight
 } from 'lucide-react';
+import WinRateCard from './WinRateCard';
+import PerformanceCard from './PerformanceCard';
 
 interface AnalyticsCardsProps {
     history: HistoryLog[];
@@ -40,11 +41,10 @@ export default function AnalyticsCards({ history, session }: AnalyticsCardsProps
             />
 
             {/* Win Rate */}
-            <MetricCard
-                label="Win Rate"
-                value={`${metrics.winRate.toFixed(1)}%`}
-                subValue={`${metrics.winningTrades}W - ${metrics.losingTrades}L`}
-                icon={<PieChart className="w-4 h-4 text-purple-400" />}
+            <WinRateCard
+                winRate={metrics.winRate}
+                winningTrades={metrics.winningTrades}
+                losingTrades={metrics.losingTrades}
             />
 
             {/* Profit Factor */}
@@ -66,30 +66,11 @@ export default function AnalyticsCards({ history, session }: AnalyticsCardsProps
             />
 
             {/* Avg Win & Loss & RR Combined */}
-            <Card className="col-span-2 relative overflow-hidden border-trade-border bg-trade-surface/20 hover:bg-trade-surface/40 transition-colors backdrop-blur-sm shadow-none rounded-[6px]">
-                <CardContent className="p-3 h-full flex flex-col justify-between">
-                    <div className="flex justify-between items-start mb-1">
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-trade-text-muted">Performance</span>
-                        <div className="p-1.5 rounded-full bg-trade-bg border border-trade-border/50 shadow-sm">
-                            <Scale className="w-4 h-4 text-blue-400" />
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                        <div>
-                            <div className="text-[11px] text-trade-text-muted mb-0.5 font-medium">Avg Win</div>
-                            <div className="text-base font-mono font-bold text-trade-success">${metrics.averageWin.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                        </div>
-                        <div>
-                            <div className="text-[11px] text-trade-text-muted mb-0.5 font-medium">Avg Loss</div>
-                            <div className="text-base font-mono font-bold text-trade-loss">${metrics.averageLoss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                        </div>
-                        <div>
-                            <div className="text-[11px] text-trade-text-muted mb-0.5 font-medium">Avg R:R</div>
-                            <div className="text-base font-mono font-bold text-trade-text-primary">{metrics.averageRR.toFixed(2)}R</div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+            <PerformanceCard
+                averageWin={metrics.averageWin}
+                averageLoss={metrics.averageLoss}
+                averageRR={metrics.averageRR}
+            />
 
         </div>
     );
