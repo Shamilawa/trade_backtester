@@ -32,7 +32,7 @@ export function EquityCurveChart({ data, className }: EquityCurveProps) {
             </CardHeader>
             <div className="flex-1 w-full min-h-0 pl-0">
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data} margin={{ top: 20, right: 10, left: -10, bottom: 0 }}>
+                    <AreaChart data={data} margin={{ top: 20, right: 15, left: 5, bottom: 10 }}>
                         <defs>
                             <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
@@ -49,33 +49,16 @@ export function EquityCurveChart({ data, className }: EquityCurveProps) {
                             minTickGap={40}
                             tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
                             dy={5}
-                            label={{
-                                value: 'Trade #',
-                                position: 'insideBottomRight',
-                                offset: -5,
-                                fill: '#475569',
-                                fontSize: 10,
-                                fontFamily: 'var(--font-mono)'
-                            }}
                         />
                         <YAxis
                             stroke="#64748b"
                             fontSize={10}
                             tickLine={false}
                             axisLine={false}
-                            tickFormatter={(value) => `${value}`}
+                            tickFormatter={(value) => `$${value.toLocaleString()}`}
                             domain={['auto', 'auto']}
                             tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
                             dx={-5}
-                            label={{
-                                value: 'Balance',
-                                angle: -90,
-                                position: 'insideLeft',
-                                fill: '#475569',
-                                fontSize: 10,
-                                fontFamily: 'var(--font-mono)',
-                                style: { textAnchor: 'middle' }
-                            }}
                         />
                         <Tooltip
                             contentStyle={{
@@ -89,7 +72,7 @@ export function EquityCurveChart({ data, className }: EquityCurveProps) {
                                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
                             }}
                             itemStyle={{ color: '#10b981' }}
-                            formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Balance']}
+                            formatter={(value: any) => [`$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Balance']}
                             labelFormatter={(label) => `Trade #${label}`}
                             cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '2 2' }}
                         />
