@@ -149,14 +149,55 @@ export function EquityCurveChart({ data, className }: EquityCurveProps) {
 }
 
 export function DrawdownChart({ data, className }: EquityCurveProps) {
+    const [metric, setMetric] = React.useState<'drawdown' | 'drawdownPercent' | 'drawdownR'>('drawdown');
+
+    const config = {
+        drawdown: {
+            label: 'Drawdown ($)',
+            dataKey: 'drawdown',
+            tickFormatter: (val: number) => `$${Math.abs(val).toLocaleString()}`,
+            tooltipFormatter: (val: number) => `$${Math.abs(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        },
+        drawdownPercent: {
+            label: 'Drawdown (%)',
+            dataKey: 'drawdownPercent',
+            tickFormatter: (val: number) => `${Math.abs(val).toFixed(1)}%`,
+            tooltipFormatter: (val: number) => `${Math.abs(val).toFixed(2)}%`
+        },
+        drawdownR: {
+            label: 'Drawdown (R)',
+            dataKey: 'drawdownR',
+            tickFormatter: (val: number) => `${Math.abs(val).toFixed(1)}R`,
+            tooltipFormatter: (val: number) => `${Math.abs(val).toFixed(2)}R`
+        }
+    };
+
+    const currentConfig = config[metric];
+
     return (
         <Card className={cn("flex flex-col h-[300px] border border-trade-border bg-trade-surface shadow-none rounded-none md:rounded-[6px]", className)}>
-            <CardHeader className="py-3 px-4 border-b border-trade-border bg-trade-surface/50">
+            <CardHeader className="py-3 px-4 border-b border-trade-border bg-trade-surface/50 flex flex-row items-center justify-between">
                 <CardTitle className="text-xs uppercase font-bold tracking-wider text-trade-text-secondary">Drawdown</CardTitle>
+                <div className="relative">
+                    <select
+                        value={metric}
+                        onChange={(e) => setMetric(e.target.value as any)}
+                        className="appearance-none bg-trade-bg border border-trade-border text-xs font-mono text-trade-text-primary rounded px-2 py-1 pr-6 focus:outline-none focus:border-trade-primary cursor-pointer hover:border-trade-text-secondary/50 transition-colors"
+                    >
+                        <option value="drawdown">Amount ($)</option>
+                        <option value="drawdownPercent">Percent (%)</option>
+                        <option value="drawdownR">R-Multiple</option>
+                    </select>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-trade-text-muted">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m6 9 6 6 6-6" />
+                        </svg>
+                    </div>
+                </div>
             </CardHeader>
             <div className="flex-1 w-full min-h-0 pl-0">
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                    <BarChart data={data} margin={{ top: 10, right: 10, left: 5, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} opacity={0.1} />
                         <XAxis
                             dataKey="tradeNumber"
@@ -173,7 +214,7 @@ export function DrawdownChart({ data, className }: EquityCurveProps) {
                             fontSize={10}
                             tickLine={false}
                             axisLine={false}
-                            tickFormatter={(value) => `${Math.abs(value)}`}
+                            tickFormatter={currentConfig.tickFormatter}
                             tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
                             dx={-5}
 
@@ -181,18 +222,15 @@ export function DrawdownChart({ data, className }: EquityCurveProps) {
                         <Tooltip
                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f8fafc', borderRadius: '4px', fontSize: '11px', fontFamily: 'var(--font-mono)' }}
                             itemStyle={{ color: '#f43f5e' }}
-                            formatter={(value: any) => [`$${Math.abs(Number(value)).toFixed(2)}`, 'Drawdown']}
-                            cursor={{ stroke: '#334155', strokeWidth: 1 }}
+                            formatter={(value: any) => [currentConfig.tooltipFormatter(Number(value)), currentConfig.label]}
+                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                         />
-                        <Area
-                            type="monotone"
-                            dataKey="drawdown"
-                            stroke="#f43f5e"
-                            strokeWidth={1.5}
+                        <Bar
+                            dataKey={currentConfig.dataKey}
                             fill="#f43f5e"
-                            fillOpacity={0.1}
+                            radius={[2, 2, 0, 0]}
                         />
-                    </AreaChart>
+                    </BarChart>
                 </ResponsiveContainer>
             </div>
         </Card>

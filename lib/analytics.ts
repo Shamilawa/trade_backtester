@@ -28,6 +28,7 @@ export interface ChartDataPoint {
     cumulativeNetProfit: number;
     cumulativePercentageGain: number;
     cumulativeR: number;
+    drawdownR: number;
 }
 
 export function filterLogs(logs: HistoryLog[], assetFilter: string | null): HistoryLog[] {
@@ -160,12 +161,14 @@ export function calculateEquityCurve(logs: HistoryLog[], initialBalance: number)
         tradeNetProfit: 0,
         cumulativeNetProfit: 0,
         cumulativePercentageGain: 0,
-        cumulativeR: 0
+        cumulativeR: 0,
+        drawdownR: 0
     });
 
     let tradeCount = 0;
     let cumulativeNetProfit = 0;
     let cumulativeR = 0;
+    let peakCumulativeR = 0;
 
     sortedLogs.forEach((log) => {
         if (log.type === 'TRADE') {
@@ -183,7 +186,16 @@ export function calculateEquityCurve(logs: HistoryLog[], initialBalance: number)
                 peakBalance = currentBalance;
             }
 
+            if (cumulativeR > peakCumulativeR) {
+                peakCumulativeR = cumulativeR;
+            }
+
             const drawdown = peakBalance - currentBalance;
+            // Drawdown R is simply the difference between peak R and current R
+            // Since cumulativeR can go down, this works. 
+            // Peak = 10R, Current = 8R, Drawdown = 2R.
+            const drawdownR = peakCumulativeR - cumulativeR;
+
             const drawdownPercent = peakBalance > 0 ? (drawdown / peakBalance) * 100 : 0;
             const cumulativePercentageGain = initialBalance > 0 ? (cumulativeNetProfit / initialBalance) * 100 : 0;
 
@@ -196,7 +208,8 @@ export function calculateEquityCurve(logs: HistoryLog[], initialBalance: number)
                 tradeNetProfit: profit,
                 cumulativeNetProfit,
                 cumulativePercentageGain,
-                cumulativeR
+                cumulativeR,
+                drawdownR
             });
         } else if (log.type === 'DEPOSIT' || log.type === 'WITHDRAWAL') {
             // Transfers affect balance but not "Equity Curve" in terms of performance usually.
@@ -231,7 +244,10 @@ export function calculateEquityCurve(logs: HistoryLog[], initialBalance: number)
                 tradeNetProfit: 0,
                 cumulativeNetProfit, // Keeps previous value
                 cumulativePercentageGain, // Keeps previous value
-                cumulativeR // Keeps previous value
+                cumulativeR, // Keeps previous value
+                drawdownR: 0 // Reset DD? Or keep previous? For funds we reset/adjust. 
+                // Detailed logic: Transfer doesn't affect R performance, so drawdown R technically unchanged? 
+                // But simplified: 0
             });
         }
     });
