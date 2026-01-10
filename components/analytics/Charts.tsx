@@ -156,7 +156,7 @@ export function DrawdownChart({ data, className }: EquityCurveProps) {
             </CardHeader>
             <div className="flex-1 w-full min-h-0 pl-0">
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <AreaChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} opacity={0.1} />
                         <XAxis
                             dataKey="tradeNumber"
@@ -167,14 +167,6 @@ export function DrawdownChart({ data, className }: EquityCurveProps) {
                             minTickGap={40}
                             tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
                             dy={5}
-                            label={{
-                                value: 'Trade #',
-                                position: 'insideBottomRight',
-                                offset: -5,
-                                fill: '#475569',
-                                fontSize: 10,
-                                fontFamily: 'var(--font-mono)'
-                            }}
                         />
                         <YAxis
                             stroke="#64748b"
@@ -184,15 +176,7 @@ export function DrawdownChart({ data, className }: EquityCurveProps) {
                             tickFormatter={(value) => `${Math.abs(value)}`}
                             tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
                             dx={-5}
-                            label={{
-                                value: 'DD ($)',
-                                angle: -90,
-                                position: 'insideLeft',
-                                fill: '#475569',
-                                fontSize: 10,
-                                fontFamily: 'var(--font-mono)',
-                                style: { textAnchor: 'middle' }
-                            }}
+
                         />
                         <Tooltip
                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f8fafc', borderRadius: '4px', fontSize: '11px', fontFamily: 'var(--font-mono)' }}
