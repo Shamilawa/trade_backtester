@@ -120,7 +120,7 @@ export default function TradeHistoryTable() {
                                 <div>
                                     <span className="text-trade-text-muted mr-1">Net P/L:</span>
                                     <span className={cn("font-mono font-medium", totalProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
-                                        ${totalProfit.toFixed(2)}
+                                        ${totalProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
                                 </div>
                                 <div>
@@ -225,18 +225,18 @@ export default function TradeHistoryTable() {
                                                     </td>
                                                     <td className="px-4 py-2 text-center font-mono font-medium">
                                                         <span className='text-trade-loss'>
-                                                            ${log.results.exits.reduce((acc, e) => acc + e.commission, 0).toFixed(2)}
+                                                            ${log.results.exits.reduce((acc, e) => acc + e.commission, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-2 text-center font-mono font-medium">
                                                         <span className={cn(
                                                             isProfit ? "text-trade-success" : "text-trade-loss"
                                                         )}>
-                                                            ${isProfit ? '+' : ''}{log.results.totalNetProfit.toFixed(2)}
+                                                            ${isProfit ? '+' : ''}{log.results.totalNetProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-2 text-right font-mono text-trade-text-muted">
-                                                        ${log.results.finalAccountBalance.toFixed(2)}
+                                                        ${log.results.finalAccountBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </td>
                                                     <td className="px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                                                         <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -290,11 +290,11 @@ export default function TradeHistoryTable() {
                                                                                             <td className="py-1.5 px-3 text-trade-text-secondary">{exit.lotsClosed.toFixed(2)}</td>
                                                                                             <td className="py-1.5 px-3 text-trade-text-secondary">{exit.pipsCaptured.toFixed(1)}</td>
                                                                                             <td className={cn("py-1.5 px-3", exit.grossProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
-                                                                                                ${exit.grossProfit.toFixed(2)}
+                                                                                                ${exit.grossProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                                                             </td>
-                                                                                            <td className="py-1.5 px-3 text-trade-loss">-${exit.commission.toFixed(2)}</td>
+                                                                                            <td className="py-1.5 px-3 text-trade-loss">-${exit.commission.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                                                             <td className={cn("py-1.5 px-3 font-medium", exit.netProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
-                                                                                                ${exit.netProfit.toFixed(2)}
+                                                                                                ${exit.netProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                                                             </td>
                                                                                             <td className={cn("py-1.5 px-3 text-center", exit.netProfit >= 0 ? "text-trade-success" : "text-trade-loss")}>
                                                                                                 {log.results.initialRiskAmount > 0
@@ -365,11 +365,11 @@ export default function TradeHistoryTable() {
                                                 <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">-</td>
                                                 <td className="px-4 py-2 text-center font-mono font-medium">
                                                     <span className={cn(isWithdrawal ? "text-trade-loss" : "text-trade-success")}>
-                                                        {isWithdrawal ? '-' : '+'}{log.amount.toFixed(2)}
+                                                        {isWithdrawal ? '-' : '+'}{log.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-2 text-right font-mono text-trade-text-muted">
-                                                    {log.newBalance.toFixed(2)}
+                                                    {log.newBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </td>
                                                 <td className="px-4 py-2 text-right">
                                                     <button
