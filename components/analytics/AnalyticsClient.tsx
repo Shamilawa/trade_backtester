@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { Session, HistoryLog, TradeLog } from '@/types';
 import { calculateEquityCurve, calculateMetrics, filterLogs } from '@/lib/analytics';
 import { PnLByTradeChart, EquityCurveChart, DrawdownChart, WinLossDistributionChart } from './Charts';
+import CalendarStats from './CalendarStats';
 import TopNavigation from '@/components/TopNavigation';
 import AnalyticsCards from '@/components/AnalyticsCards';
 
@@ -102,6 +103,10 @@ export default function AnalyticsClient({ session, initialLogs }: { session: Ses
                             <WinLossDistributionChart data={winLossDistribution} className="h-full" />
                         </div>
                     </div>
+                </div>
+
+                <div className="mt-6 pb-6">
+                    <CalendarStats logs={filteredLogs} />
                 </div>
 
                 <div className="text-center text-[10px] text-trade-text-muted/50 font-mono py-4 border-t border-trade-border">
