@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { Session, HistoryLog, TradeLog } from '@/types';
 import { calculateEquityCurve, calculateMetrics, filterLogs } from '@/lib/analytics';
-import { PnLByTradeChart, EquityCurveChart, DrawdownChart, WinLossDistributionChart } from './Charts';
+import { PnLByTradeChart, EquityCurveChart, DrawdownChart, WinLossDistributionChart, MonthByMonthChart } from './Charts';
 import CalendarStats from './CalendarStats';
 import TopNavigation from '@/components/TopNavigation';
 import AnalyticsCards from '@/components/AnalyticsCards';
@@ -52,6 +52,38 @@ export default function AnalyticsClient({ session, initialLogs }: { session: Ses
         return bins.map(b => ({ range: b.label, count: b.count, fill: b.fill }));
     }, [filteredLogs]);
 
+    const monthlyData = useMemo(() => {
+        const tradeLogs = filteredLogs.filter(l => l.type === 'TRADE') as TradeLog[];
+        const groups: { [key: string]: { pnl: number, rMultiple: number } } = {};
+
+        tradeLogs.forEach(log => {
+            const date = new Date(log.date);
+            const key = date.toLocaleString('default', { month: 'short', year: '2-digit' }); // e.g., "Jan 24"
+            if (!groups[key]) groups[key] = { pnl: 0, rMultiple: 0 };
+
+            groups[key].pnl += Number(log.results.totalNetProfit);
+
+            const initialRisk = log.results.initialRiskAmount || 0;
+            if (initialRisk > 0) {
+                groups[key].rMultiple += Number(log.results.totalNetProfit) / initialRisk;
+            }
+        });
+
+        // Convert to array and Sort chronologically
+        return Object.entries(groups).map(([month, data]) => ({
+            month,
+            pnl: data.pnl,
+            percentage: session.initialBalance ? (data.pnl / session.initialBalance) * 100 : 0,
+            rMultiple: data.rMultiple
+        })).sort((a, b) => {
+            const dateA = new Date(a.month.replace(" ", " 1, 20"));
+            const dateB = new Date(b.month.replace(" ", " 1, 20"));
+            return dateA.getTime() - dateB.getTime();
+        });
+    }, [filteredLogs, session.initialBalance]);
+
+
+
     return (
         <div className="flex flex-col h-full bg-trade-bg">
             {/* Header & Controls */}
@@ -94,12 +126,15 @@ export default function AnalyticsClient({ session, initialLogs }: { session: Ses
                         </div>
                     </div>
 
-                    {/* Bottom Row: P&L by Trade + Distribution */}
-                    <div className="flex flex-col lg:flex-row gap-6 h-auto lg:h-[400px]">
-                        <div className="w-full lg:w-[60%] h-[300px] lg:h-full">
-                            <PnLByTradeChart data={pnlByTrade} className="h-[300px] lg:h-full" />
+                    {/* Bottom Row: Month by Month + P&L + Distribution */}
+                    <div className="flex flex-col lg:flex-row gap-6 h-auto lg:h-[350px]">
+                        <div className="w-full lg:flex-1 h-[300px] lg:h-full">
+                            <MonthByMonthChart data={monthlyData} className="h-full" />
                         </div>
-                        <div className="w-full lg:w-[40%] h-[300px] lg:h-full">
+                        <div className="w-full lg:flex-1 h-[300px] lg:h-full">
+                            <PnLByTradeChart data={pnlByTrade} className="h-full" />
+                        </div>
+                        <div className="w-full lg:flex-1 h-[300px] lg:h-full">
                             <WinLossDistributionChart data={winLossDistribution} className="h-full" />
                         </div>
                     </div>

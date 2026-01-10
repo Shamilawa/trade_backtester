@@ -350,3 +350,95 @@ export function WinLossDistributionChart({ data, className }: WinLossDistributio
         </Card>
     )
 }
+
+interface MonthByMonthChartProps {
+    data: any[];
+    className?: string;
+}
+
+export function MonthByMonthChart({ data, className }: MonthByMonthChartProps) {
+    const [metric, setMetric] = React.useState<'pnl' | 'percentage' | 'rMultiple'>('pnl');
+
+    const config = {
+        pnl: {
+            label: '$ Gain',
+            dataKey: 'pnl',
+            tickFormatter: (val: number) => `$${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+            tooltipFormatter: (val: number) => `$${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        },
+        percentage: {
+            label: '% Gain',
+            dataKey: 'percentage',
+            tickFormatter: (val: number) => `${val.toFixed(1)}%`,
+            tooltipFormatter: (val: number) => `${val.toFixed(2)}%`
+        },
+        rMultiple: {
+            label: 'R Gain',
+            dataKey: 'rMultiple',
+            tickFormatter: (val: number) => `${val.toFixed(1)}R`,
+            tooltipFormatter: (val: number) => `${val.toFixed(2)}R`
+        }
+    };
+
+    const currentConfig = config[metric];
+
+    return (
+        <Card className={cn("flex flex-col h-[300px] border border-trade-border bg-trade-surface shadow-none rounded-none md:rounded-[6px]", className)}>
+            <CardHeader className="py-3 px-4 border-b border-trade-border bg-trade-surface/50 flex flex-row items-center justify-between">
+                <CardTitle className="text-xs uppercase font-bold tracking-wider text-trade-text-secondary">Monthly Performance</CardTitle>
+                <div className="relative">
+                    <select
+                        value={metric}
+                        onChange={(e) => setMetric(e.target.value as any)}
+                        className="appearance-none bg-trade-bg border border-trade-border text-xs font-mono text-trade-text-primary rounded px-2 py-1 pr-6 focus:outline-none focus:border-trade-primary cursor-pointer hover:border-trade-text-secondary/50 transition-colors"
+                    >
+                        <option value="pnl">$ Gain</option>
+                        <option value="percentage">% Gain</option>
+                        <option value="rMultiple">R Gain</option>
+                    </select>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-trade-text-muted">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m6 9 6 6 6-6" />
+                        </svg>
+                    </div>
+                </div>
+            </CardHeader>
+            <div className="flex-1 w-full min-h-0 pl-0">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data} margin={{ top: 10, right: 10, left: -5, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} opacity={0.1} />
+                        <XAxis
+                            dataKey="month"
+                            stroke="#64748b"
+                            fontSize={10}
+                            tickLine={false}
+                            axisLine={false}
+                            minTickGap={20}
+                            tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
+                            dy={5}
+                        />
+                        <YAxis
+                            stroke="#64748b"
+                            fontSize={10}
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={currentConfig.tickFormatter}
+                            tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
+                            dx={-5}
+                        />
+                        <Tooltip
+                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f8fafc', borderRadius: '4px', fontSize: '11px', fontFamily: 'var(--font-mono)' }}
+                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                            formatter={(value: any) => [currentConfig.tooltipFormatter(Number(value)), currentConfig.label]}
+                        />
+                        <Bar dataKey={currentConfig.dataKey}>
+                            {data.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry[currentConfig.dataKey] >= 0 ? '#10b981' : '#f43f5e'} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+        </Card>
+    );
+}
