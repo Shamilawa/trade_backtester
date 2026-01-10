@@ -25,18 +25,75 @@ interface EquityCurveProps {
 }
 
 export function EquityCurveChart({ data, className }: EquityCurveProps) {
+    const [metric, setMetric] = React.useState<'balance' | 'cumulativeNetProfit' | 'cumulativePercentageGain' | 'cumulativeR'>('balance');
+
+    const config = {
+        balance: {
+            label: 'Balance',
+            dataKey: 'balance',
+            stroke: '#10b981',
+            fill: '#10b981',
+            tickFormatter: (val: number) => `$${val.toLocaleString()}`,
+            tooltipFormatter: (val: number) => `$${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        },
+        cumulativeNetProfit: {
+            label: 'Cum. Profit ($)',
+            dataKey: 'cumulativeNetProfit',
+            stroke: '#3b82f6',
+            fill: '#3b82f6',
+            tickFormatter: (val: number) => `$${val.toLocaleString()}`,
+            tooltipFormatter: (val: number) => `$${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        },
+        cumulativePercentageGain: {
+            label: 'Cum. Gain (%)',
+            dataKey: 'cumulativePercentageGain',
+            stroke: '#8b5cf6',
+            fill: '#8b5cf6',
+            tickFormatter: (val: number) => `${val.toFixed(1)}%`,
+            tooltipFormatter: (val: number) => `${val.toFixed(2)}%`
+        },
+        cumulativeR: {
+            label: 'Cum. R',
+            dataKey: 'cumulativeR',
+            stroke: '#f59e0b',
+            fill: '#f59e0b',
+            tickFormatter: (val: number) => `${val.toFixed(1)}R`,
+            tooltipFormatter: (val: number) => `${val.toFixed(2)}R`
+        }
+    };
+
+    const currentConfig = config[metric];
+    const gradientId = `color${metric}`;
+
     return (
         <Card className={cn("flex flex-col h-[400px] border border-trade-border bg-trade-surface shadow-none rounded-none md:rounded-[6px]", className)}>
-            <CardHeader className="py-3 px-4 border-b border-trade-border bg-trade-surface/50">
+            <CardHeader className="py-3 px-4 border-b border-trade-border bg-trade-surface/50 flex flex-row items-center justify-between">
                 <CardTitle className="text-xs uppercase font-bold tracking-wider text-trade-text-secondary">Equity Curve</CardTitle>
+                <div className="relative">
+                    <select
+                        value={metric}
+                        onChange={(e) => setMetric(e.target.value as any)}
+                        className="appearance-none bg-trade-bg border border-trade-border text-xs font-mono text-trade-text-primary rounded px-2 py-1 pr-6 focus:outline-none focus:border-trade-primary cursor-pointer hover:border-trade-text-secondary/50 transition-colors"
+                    >
+                        <option value="balance">Balance</option>
+                        <option value="cumulativeNetProfit">Cum. Gain ($)</option>
+                        <option value="cumulativePercentageGain">Cum. Gain (%)</option>
+                        <option value="cumulativeR">Cum. R</option>
+                    </select>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-trade-text-muted">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m6 9 6 6 6-6" />
+                        </svg>
+                    </div>
+                </div>
             </CardHeader>
             <div className="flex-1 w-full min-h-0 pl-0">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data} margin={{ top: 20, right: 15, left: 5, bottom: 10 }}>
                         <defs>
-                            <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={currentConfig.stroke} stopOpacity={0.4} />
+                                <stop offset="95%" stopColor={currentConfig.stroke} stopOpacity={0} />
                             </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} opacity={0.1} />
@@ -55,7 +112,7 @@ export function EquityCurveChart({ data, className }: EquityCurveProps) {
                             fontSize={10}
                             tickLine={false}
                             axisLine={false}
-                            tickFormatter={(value) => `$${value.toLocaleString()}`}
+                            tickFormatter={currentConfig.tickFormatter}
                             domain={['auto', 'auto']}
                             tick={{ fill: '#64748b', fontFamily: 'var(--font-mono)' }}
                             dx={-5}
@@ -71,18 +128,18 @@ export function EquityCurveChart({ data, className }: EquityCurveProps) {
                                 backdropFilter: 'blur(8px)',
                                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
                             }}
-                            itemStyle={{ color: '#10b981' }}
-                            formatter={(value: any) => [`$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Balance']}
+                            itemStyle={{ color: currentConfig.stroke }}
+                            formatter={(value: any) => [currentConfig.tooltipFormatter(Number(value)), currentConfig.label]}
                             labelFormatter={(label) => `Trade #${label}`}
                             cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '2 2' }}
                         />
                         <Area
                             type="monotone"
-                            dataKey="balance"
-                            stroke="#10b981"
+                            dataKey={currentConfig.dataKey}
+                            stroke={currentConfig.stroke}
                             strokeWidth={2}
-                            fill="url(#colorBalance)"
-                            activeDot={{ r: 4, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
+                            fill={`url(#${gradientId})`}
+                            activeDot={{ r: 4, fill: currentConfig.stroke, stroke: '#fff', strokeWidth: 2 }}
                         />
                     </AreaChart>
                 </ResponsiveContainer>

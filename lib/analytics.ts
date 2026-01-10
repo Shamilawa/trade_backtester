@@ -25,6 +25,9 @@ export interface ChartDataPoint {
     drawdown: number;
     drawdownPercent: number;
     tradeNetProfit: number;
+    cumulativeNetProfit: number;
+    cumulativePercentageGain: number;
+    cumulativeR: number;
 }
 
 export function filterLogs(logs: HistoryLog[], assetFilter: string | null): HistoryLog[] {
@@ -154,16 +157,27 @@ export function calculateEquityCurve(logs: HistoryLog[], initialBalance: number)
         balance: initialBalance,
         drawdown: 0,
         drawdownPercent: 0,
-        tradeNetProfit: 0
+        tradeNetProfit: 0,
+        cumulativeNetProfit: 0,
+        cumulativePercentageGain: 0,
+        cumulativeR: 0
     });
 
     let tradeCount = 0;
+    let cumulativeNetProfit = 0;
+    let cumulativeR = 0;
 
     sortedLogs.forEach((log) => {
         if (log.type === 'TRADE') {
             tradeCount++;
             const profit = log.results.totalNetProfit;
             currentBalance += profit;
+            cumulativeNetProfit += profit;
+
+            // Calculate R-Multiple for this trade
+            const risk = log.results.initialRiskAmount > 0 ? log.results.initialRiskAmount : 1; // Avoid div by 0
+            const rMultiple = profit / risk;
+            cumulativeR += rMultiple;
 
             if (currentBalance > peakBalance) {
                 peakBalance = currentBalance;
@@ -171,6 +185,7 @@ export function calculateEquityCurve(logs: HistoryLog[], initialBalance: number)
 
             const drawdown = peakBalance - currentBalance;
             const drawdownPercent = peakBalance > 0 ? (drawdown / peakBalance) * 100 : 0;
+            const cumulativePercentageGain = initialBalance > 0 ? (cumulativeNetProfit / initialBalance) * 100 : 0;
 
             points.push({
                 tradeNumber: tradeCount,
@@ -178,7 +193,10 @@ export function calculateEquityCurve(logs: HistoryLog[], initialBalance: number)
                 balance: currentBalance,
                 drawdown: drawdown,
                 drawdownPercent: drawdownPercent,
-                tradeNetProfit: profit
+                tradeNetProfit: profit,
+                cumulativeNetProfit,
+                cumulativePercentageGain,
+                cumulativeR
             });
         } else if (log.type === 'DEPOSIT' || log.type === 'WITHDRAWAL') {
             // Transfers affect balance but not "Equity Curve" in terms of performance usually.
@@ -201,13 +219,19 @@ export function calculateEquityCurve(logs: HistoryLog[], initialBalance: number)
             }
 
             // We might insert a point here to show the step change
+            // We might insert a point here to show the step change
+            const cumulativePercentageGain = initialBalance > 0 ? (cumulativeNetProfit / initialBalance) * 100 : 0;
+
             points.push({
                 tradeNumber: tradeCount, // Keep same trade number?
                 date: new Date(log.date).toLocaleDateString() + (log.type === 'WITHDRAWAL' ? ' (W)' : ' (D)'),
                 balance: currentBalance,
                 drawdown: 0, // Reset DD visual for transfers? or keep previous?
                 drawdownPercent: 0,
-                tradeNetProfit: 0
+                tradeNetProfit: 0,
+                cumulativeNetProfit, // Keeps previous value
+                cumulativePercentageGain, // Keeps previous value
+                cumulativeR // Keeps previous value
             });
         }
     });
