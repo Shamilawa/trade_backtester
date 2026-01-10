@@ -33,7 +33,7 @@ export function filterLogs(logs: HistoryLog[], assetFilter: string | null): Hist
         if (log.type === 'TRADE') {
             return log.input.asset === assetFilter;
         }
-        return true; 
+        return true;
     });
 }
 
@@ -45,7 +45,8 @@ function calculateStandardDeviation(values: number[], mean: number): number {
 }
 
 export function calculateMetrics(logs: HistoryLog[]): AnalyticsMetrics {
-    const trades = logs.filter(l => l.type === 'TRADE') as TradeLog[];
+    const sortedLogs = [...logs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const trades = sortedLogs.filter(l => l.type === 'TRADE') as TradeLog[];
     const totalTrades = trades.length;
 
     if (totalTrades === 0) {
@@ -141,8 +142,8 @@ export function calculateEquityCurve(logs: HistoryLog[], initialBalance: number)
     let currentBalance = initialBalance;
     let peakBalance = initialBalance;
 
-    // Sort logs by date just in case? Usually they come sorted.
-    // Assuming sorted.
+    // Sort logs by date to ensure correct calculation order (Oldest -> Newest)
+    const sortedLogs = [...logs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     const points: ChartDataPoint[] = [];
 
@@ -158,7 +159,7 @@ export function calculateEquityCurve(logs: HistoryLog[], initialBalance: number)
 
     let tradeCount = 0;
 
-    logs.forEach((log) => {
+    sortedLogs.forEach((log) => {
         if (log.type === 'TRADE') {
             tradeCount++;
             const profit = log.results.totalNetProfit;

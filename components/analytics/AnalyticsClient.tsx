@@ -12,7 +12,8 @@ export default function AnalyticsClient({ session, initialLogs }: { session: Ses
     const [dateRange, setDateRange] = useState<string>('ALL');
 
     const filteredLogs = useMemo(() => {
-        return filterLogs(initialLogs, assetFilter === 'ALL' ? null : assetFilter);
+        return filterLogs(initialLogs, assetFilter === 'ALL' ? null : assetFilter)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }, [initialLogs, assetFilter]);
 
     const metrics = useMemo(() => calculateMetrics(filteredLogs), [filteredLogs]);
