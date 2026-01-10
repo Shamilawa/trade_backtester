@@ -3,9 +3,9 @@
 import React, { useMemo, useState } from 'react';
 import { Session, HistoryLog, TradeLog } from '@/types';
 import { calculateEquityCurve, calculateMetrics, filterLogs } from '@/lib/analytics';
-import { KeyMetrics } from './KeyMetrics';
 import { PnLByTradeChart, EquityCurveChart, DrawdownChart, WinLossDistributionChart } from './Charts';
 import TopNavigation from '@/components/TopNavigation';
+import AnalyticsCards from '@/components/AnalyticsCards';
 
 export default function AnalyticsClient({ session, initialLogs }: { session: Session, initialLogs: HistoryLog[] }) {
     const [assetFilter, setAssetFilter] = useState<string>('ALL');
@@ -79,7 +79,7 @@ export default function AnalyticsClient({ session, initialLogs }: { session: Ses
             <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto space-y-6">
 
                 {/* Key Metrics - Grid Strip */}
-                <KeyMetrics metrics={metrics} />
+                <AnalyticsCards history={filteredLogs} session={session} />
 
                 {/* Charts Grid */}
                 <div className="flex flex-col gap-6">

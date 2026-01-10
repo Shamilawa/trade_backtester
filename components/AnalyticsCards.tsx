@@ -66,8 +66,7 @@ export default function AnalyticsCards({ history, session }: AnalyticsCardsProps
             />
 
             {/* Avg Win & Loss & RR Combined */}
-            <Card className="col-span-2 relative overflow-hidden border-trade-border bg-trade-surface/20 hover:bg-trade-surface/40 transition-colors backdrop-blur-sm">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-trade-primary/50" />
+            <Card className="col-span-2 relative overflow-hidden border-trade-border bg-trade-surface/20 hover:bg-trade-surface/40 transition-colors backdrop-blur-sm shadow-none rounded-[6px]">
                 <CardContent className="p-3 h-full flex flex-col justify-between">
                     <div className="flex justify-between items-start mb-1">
                         <span className="text-[10px] uppercase font-bold tracking-wider text-trade-text-muted">Performance</span>
@@ -117,7 +116,7 @@ function MetricCard({
 }) {
     return (
         <Card className={cn(
-            "relative overflow-hidden border-trade-border bg-trade-surface/20 hover:bg-trade-surface/40 transition-colors backdrop-blur-sm",
+            "relative overflow-hidden border-trade-border bg-trade-surface/20 hover:bg-trade-surface/40 transition-colors backdrop-blur-sm shadow-none rounded-[6px]",
             highlight && "bg-trade-primary/5 border-trade-primary/20"
         )}>
             {indicatorColor && <div className={cn("absolute left-0 top-0 bottom-0 w-1", indicatorColor)} />}
