@@ -27,6 +27,35 @@ interface WeekStats {
 
 export default function CalendarStats({ logs }: CalendarStatsProps) {
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
+    const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
+
+    const togglePicker = () => {
+        if (!isPickerOpen) {
+            setPickerYear(currentDate.getFullYear());
+        }
+        setIsPickerOpen(!isPickerOpen);
+    };
+
+    const handleMonthSelect = (monthIndex: number) => {
+        setCurrentDate(new Date(pickerYear, monthIndex, 1));
+        setIsPickerOpen(false);
+    };
+
+    const nextPickerYear = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setPickerYear(pickerYear + 1);
+    };
+
+    const prevPickerYear = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setPickerYear(pickerYear - 1);
+    };
+
+    const months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
 
     const tradeLogs = useMemo(() => {
         return logs.filter(l => l.type === 'TRADE') as TradeLog[];
@@ -150,11 +179,52 @@ export default function CalendarStats({ logs }: CalendarStatsProps) {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                        <h2 className="text-lg font-semibold text-trade-text-primary">{monthName}</h2>
+                    <div className="flex items-center space-x-2 relative z-10">
+                        <div
+                            onClick={togglePicker}
+                            className="text-lg font-semibold text-trade-text-primary hover:bg-trade-surface px-2 py-1 rounded cursor-pointer select-none flex items-center gap-2 transition-colors"
+                        >
+                            {monthName}
+                            <ChevronRight className={cn("w-4 h-4 transition-transform", isPickerOpen && "rotate-90")} />
+                        </div>
+
                         <button onClick={goToToday} className="px-2 py-1 text-xs font-medium text-trade-text-secondary bg-trade-surface hover:bg-trade-border rounded transition-colors">
                             This month
                         </button>
+
+                        {/* Month Picker Dropdown */}
+                        {isPickerOpen && (
+                            <>
+                                <div className="fixed inset-0 z-10" onClick={() => setIsPickerOpen(false)} />
+                                <div className="absolute top-full left-0 mt-2 bg-trade-surface border border-trade-border rounded-lg shadow-xl z-20 w-[280px] p-4 flex flex-col space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <button onClick={prevPickerYear} className="p-1 hover:bg-trade-bg rounded">
+                                            <ChevronLeft className="w-4 h-4" />
+                                        </button>
+                                        <span className="font-semibold text-trade-text-primary">{pickerYear}</span>
+                                        <button onClick={nextPickerYear} className="p-1 hover:bg-trade-bg rounded">
+                                            <ChevronRight className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {months.map((m, i) => (
+                                            <button
+                                                key={m}
+                                                onClick={() => handleMonthSelect(i)}
+                                                className={cn(
+                                                    "text-xs py-2 rounded hover:bg-trade-primary/10 hover:text-trade-primary transition-colors",
+                                                    currentDate.getMonth() === i && currentDate.getFullYear() === pickerYear
+                                                        ? "bg-trade-primary text-trade-primary-foreground hover:bg-trade-primary hover:text-trade-primary-foreground"
+                                                        : "text-trade-text-secondary"
+                                                )}
+                                            >
+                                                {m.slice(0, 3)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
                 <div className="flex items-center space-x-2 text-trade-text-secondary">
