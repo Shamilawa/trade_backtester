@@ -5,7 +5,7 @@ import { Session, HistoryLog, TradeLog } from '@/types';
 import { calculateEquityCurve, calculateMetrics, filterLogs } from '@/lib/analytics';
 import { KeyMetrics } from './KeyMetrics';
 import { PnLByTradeChart, EquityCurveChart, DrawdownChart, WinLossDistributionChart } from './Charts';
-import { AnalyticsHeader } from './AnalyticsHeader';
+import TopNavigation from '@/components/TopNavigation';
 
 export default function AnalyticsClient({ session, initialLogs }: { session: Session, initialLogs: HistoryLog[] }) {
     const [assetFilter, setAssetFilter] = useState<string>('ALL');
@@ -53,18 +53,30 @@ export default function AnalyticsClient({ session, initialLogs }: { session: Ses
 
     return (
         <div className="flex flex-col h-full bg-trade-bg">
+            {/* Header & Controls */}
+            <TopNavigation session={session}>
+                <select
+                    value={assetFilter}
+                    onChange={(e) => setAssetFilter(e.target.value)}
+                    className="h-6 text-[10px] bg-trade-bg border border-trade-border rounded text-trade-text-secondary focus:outline-none focus:border-trade-primary cursor-pointer px-2"
+                >
+                    <option value="ALL">All Assets</option>
+                    <option value="EURUSD">EURUSD</option>
+                    <option value="XAUUSD">XAUUSD</option>
+                </select>
+                <select
+                    value={dateRange}
+                    onChange={(e) => setDateRange(e.target.value)}
+                    className="h-6 text-[10px] bg-trade-bg border border-trade-border rounded text-trade-text-secondary focus:outline-none focus:border-trade-primary cursor-pointer px-2"
+                    disabled
+                >
+                    <option value="ALL">All Time</option>
+                    <option value="MONTH">This Month</option>
+                </select>
+            </TopNavigation>
+
             {/* Main Container - matching Trade Table wrapper style */}
             <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto space-y-6">
-
-                {/* Header & Controls */}
-                <AnalyticsHeader
-                    sessionName={session.name}
-                    assetFilter={assetFilter}
-                    setAssetFilter={setAssetFilter}
-                    dateRange={dateRange}
-                    setDateRange={setDateRange}
-                    tradeCount={filteredLogs.length}
-                />
 
                 {/* Key Metrics - Grid Strip */}
                 <KeyMetrics metrics={metrics} />

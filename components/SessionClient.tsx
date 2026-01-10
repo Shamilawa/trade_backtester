@@ -6,7 +6,7 @@ import TradeHistoryTable from '@/components/TradeHistoryTable';
 
 import { useTradeStore } from '@/store/tradeStore';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import TopNavigation from '@/components/TopNavigation';
 import { Button } from '@/components/ui/common';
 import WithdrawalModal from '@/components/WithdrawalModal';
 import { Session, HistoryLog } from '@/types';
@@ -42,33 +42,15 @@ export default function SessionClient({ session, initialLogs }: SessionClientPro
         <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden w-full">
             {/* Main Content - Data Grid */}
             <section className="flex-1 flex flex-col h-full overflow-hidden bg-trade-bg relative">
-                <div className="flex-none h-[50px] p-3 border-b border-trade-border bg-trade-surface flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="ghost"
-                            onClick={() => router.push('/')}
-                            className="h-8 px-2 text-trade-text-muted hover:text-trade-text-primary"
-                        >
-                            <ArrowLeft className="w-4 h-4 mr-1" />
-                            Lobby
-                        </Button>
-                        <div className="h-4 w-px bg-trade-border mx-2" />
-                        <h2 className="text-sm font-semibold text-trade-text-primary">
-                            {session.name}
-                        </h2>
-                    </div>
-                    <div>
-                        <div>
-                            <Button
-                                variant="outline"
-                                className="h-8 text-xs gap-2"
-                                onClick={() => setIsWithdrawModalOpen(true)}
-                            >
-                                Withdraw
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+                <TopNavigation session={session}>
+                    <Button
+                        variant="outline"
+                        className="h-8 text-xs gap-2"
+                        onClick={() => setIsWithdrawModalOpen(true)}
+                    >
+                        Withdraw
+                    </Button>
+                </TopNavigation>
 
                 <div className="flex-1 p-3 overflow-hidden">
                     <TradeHistoryTable />
