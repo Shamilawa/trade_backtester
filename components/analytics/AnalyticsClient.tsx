@@ -199,7 +199,7 @@ export default function AnalyticsClient({ session, initialLogs }: { session: Ses
                     <span className="text-[10px] text-trade-text-secondary uppercase font-mono tracking-wider">Simulation</span>
                     <button
                         onClick={handleToggleSimulation}
-                        className={`w-9 h-5 rounded-full relative transition-colors border ${isSimulationMode ? 'bg-trade-primary border-trade-primary' : 'bg-trade-bg border-trade-border'}`}
+                        className={`w-9 h-5 rounded-full relative transition-colors border ${isSimulationMode ? 'bg-trade-primary border-trade-primary' : 'bg-gray-200 border-white/20'}`}
                     >
                         <div className={`absolute top-0.5 bottom-0.5 w-3.5 rounded-full bg-white transition-all ${isSimulationMode ? 'translate-x-4 ml-0.5' : 'translate-x-0.5'}`} />
                     </button>
