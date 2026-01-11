@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { HistoryLog, TradeLog } from '@/types';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -26,9 +26,38 @@ interface WeekStats {
 }
 
 export default function CalendarStats({ logs }: CalendarStatsProps) {
-    const [currentDate, setCurrentDate] = useState(new Date());
+
+    const tradeLogs = useMemo(() => {
+        return logs.filter(l => l.type === 'TRADE') as TradeLog[];
+    }, [logs]);
+
+    // Find the latest date with records to default the view
+    const latestTradeDate = useMemo(() => {
+        if (tradeLogs.length === 0) return new Date();
+        // Logs are typically sorted, but let's be robust
+        const lastLog = tradeLogs[tradeLogs.length - 1]; // Assuming sorted from parent
+        return new Date(lastLog.date);
+    }, [tradeLogs]);
+
+    const [currentDate, setCurrentDate] = useState(() => {
+        // Initialize with latest trade date
+        return latestTradeDate;
+    });
+
     const [isPickerOpen, setIsPickerOpen] = useState(false);
-    const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
+    const [pickerYear, setPickerYear] = useState(latestTradeDate.getFullYear());
+
+    // Update view if the underlying data range changes (e.g. filtering to an older asset)
+    // We compare time values to avoid unnecessary updates if ref changes but date is same
+    useEffect(() => {
+        setCurrentDate(prev => {
+            if (prev.getMonth() === latestTradeDate.getMonth() && prev.getFullYear() === latestTradeDate.getFullYear()) {
+                return prev;
+            }
+            return latestTradeDate;
+        });
+        setPickerYear(latestTradeDate.getFullYear());
+    }, [latestTradeDate]);
 
     const togglePicker = () => {
         if (!isPickerOpen) {
@@ -56,10 +85,6 @@ export default function CalendarStats({ logs }: CalendarStatsProps) {
         'January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'
     ];
-
-    const tradeLogs = useMemo(() => {
-        return logs.filter(l => l.type === 'TRADE') as TradeLog[];
-    }, [logs]);
 
     // Calendar Logic
     const { calendarDays, weeklyStats } = useMemo(() => {
