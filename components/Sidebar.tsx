@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutDashboard, Settings, LineChart } from 'lucide-react';
+import { LayoutDashboard, Settings, LineChart, ScatterChart } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -35,6 +35,12 @@ export default function Sidebar() {
                     label="Analytics"
                     href={`/session/${sessionId}/analytics`}
                     isActive={pathname === `/session/${sessionId}/analytics`}
+                />
+                <NavItem
+                    icon={<ScatterChart className="w-5 h-5" />}
+                    label="Monte Carlo"
+                    href={`/session/${sessionId}/monte-carlo`}
+                    isActive={pathname === `/session/${sessionId}/monte-carlo`}
                 />
             </nav>
 
