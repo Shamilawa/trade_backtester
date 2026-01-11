@@ -7,15 +7,103 @@ import { PnLByTradeChart, EquityCurveChart, DrawdownChart, WinLossDistributionCh
 import CalendarStats from './CalendarStats';
 import TopNavigation from '@/components/TopNavigation';
 import AnalyticsCards from '@/components/AnalyticsCards';
+import RiskSimulationModal, { SimulationConfig } from './RiskSimulationModal';
 
 export default function AnalyticsClient({ session, initialLogs }: { session: Session, initialLogs: HistoryLog[] }) {
     const [assetFilter, setAssetFilter] = useState<string>('ALL');
     const [dateRange, setDateRange] = useState<string>('ALL');
 
+    // Simulation Mode State
+    const [isSimulationMode, setIsSimulationMode] = useState(false);
+    const [showSimulationModal, setShowSimulationModal] = useState(false);
+    const [simulatedLogs, setSimulatedLogs] = useState<HistoryLog[]>([]);
+    const [simulationConfig, setSimulationConfig] = useState<SimulationConfig | null>(null);
+
     const filteredLogs = useMemo(() => {
-        return filterLogs(initialLogs, assetFilter === 'ALL' ? null : assetFilter)
+        const sourceLogs = isSimulationMode ? simulatedLogs : initialLogs;
+        return filterLogs(sourceLogs, assetFilter === 'ALL' ? null : assetFilter)
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    }, [initialLogs, assetFilter]);
+    }, [initialLogs, simulatedLogs, isSimulationMode, assetFilter]);
+
+    const handleToggleSimulation = () => {
+        if (!isSimulationMode) {
+            setShowSimulationModal(true);
+        } else {
+            setIsSimulationMode(false);
+            setSimulatedLogs([]);
+            setSimulationConfig(null);
+        }
+    };
+
+    const handleApplySimulation = (config: SimulationConfig) => {
+        setSimulationConfig(config);
+
+        const newLogs = initialLogs.map(log => {
+            if (log.type !== 'TRADE') return log;
+
+            const tradeLog = log as TradeLog;
+            let originalRisk = 0;
+            let targetRisk = 0;
+
+            // 1. Determine Original Risk
+            if (tradeLog.results.initialRiskAmount) {
+                originalRisk = tradeLog.results.initialRiskAmount;
+            } else if (tradeLog.input.riskCashAmount) {
+                originalRisk = tradeLog.input.riskCashAmount;
+            } else {
+                originalRisk = tradeLog.input.accountBalance * (tradeLog.input.initialRiskPercent / 100);
+            }
+
+            if (originalRisk <= 0) return log;
+
+            // 2. Determine Target Risk
+            if (config.type === 'mapping') {
+                let key = '';
+                if (tradeLog.input.riskMode === 'cash' && tradeLog.input.riskCashAmount) {
+                    key = `c_${tradeLog.input.riskCashAmount}`;
+                } else if (tradeLog.input.initialRiskPercent) {
+                    key = `p_${tradeLog.input.initialRiskPercent}`;
+                }
+
+                if (!key || config.mapping[key] === undefined) return log;
+
+                const mappedValue = config.mapping[key];
+
+                // Smart logic: if key was percent-based (p_1), mappedValue (0.5) implies 0.5% risk
+                if (key.startsWith('p_')) {
+                    targetRisk = tradeLog.input.accountBalance * (mappedValue / 100);
+                } else {
+                    // Key was cash-based (c_100), mappedValue (50) implies $50 risk
+                    targetRisk = mappedValue;
+                }
+
+            } else {
+                // Static Config
+                if (config.unit === 'cash') {
+                    targetRisk = config.value;
+                } else {
+                    // Static Percent
+                    targetRisk = tradeLog.input.accountBalance * (config.value / 100);
+                }
+            }
+
+            if (targetRisk === 0) return log;
+
+            const ratio = targetRisk / originalRisk;
+
+            // Deep clone to avoid mutating original
+            const newLog = JSON.parse(JSON.stringify(tradeLog)) as TradeLog;
+
+            // Adjust Financials
+            newLog.results.totalNetProfit = tradeLog.results.totalNetProfit * ratio;
+            newLog.results.initialRiskAmount = targetRisk;
+
+            return newLog;
+        });
+
+        setSimulatedLogs(newLogs);
+        setIsSimulationMode(true);
+    };
 
     const metrics = useMemo(() => calculateMetrics(filteredLogs), [filteredLogs]);
     const equityCurve = useMemo(() => calculateEquityCurve(filteredLogs, session.initialBalance), [filteredLogs, session.initialBalance]);
@@ -106,10 +194,32 @@ export default function AnalyticsClient({ session, initialLogs }: { session: Ses
                     <option value="ALL">All Time</option>
                     <option value="MONTH">This Month</option>
                 </select>
+
+                <div className="flex items-center gap-2 ml-4 border-l border-trade-border pl-4">
+                    <span className="text-[10px] text-trade-text-secondary uppercase font-mono tracking-wider">Simulation</span>
+                    <button
+                        onClick={handleToggleSimulation}
+                        className={`w-9 h-5 rounded-full relative transition-colors border ${isSimulationMode ? 'bg-trade-primary border-trade-primary' : 'bg-trade-bg border-trade-border'}`}
+                    >
+                        <div className={`absolute top-0.5 bottom-0.5 w-3.5 rounded-full bg-white transition-all ${isSimulationMode ? 'translate-x-4 ml-0.5' : 'translate-x-0.5'}`} />
+                    </button>
+                </div>
             </TopNavigation>
 
+            <RiskSimulationModal
+                isOpen={showSimulationModal}
+                onClose={() => setShowSimulationModal(false)}
+                logs={initialLogs.filter(l => l.type === 'TRADE') as TradeLog[]}
+                onApply={handleApplySimulation}
+            />
             {/* Main Container - matching Trade Table wrapper style */}
             <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto space-y-6">
+
+                {isSimulationMode && (
+                    <div className="bg-trade-primary/10 border border-trade-primary/20 text-trade-primary px-4 py-3 rounded text-xs font-mono text-center tracking-wide">
+                        ⚠️ SIMULATION MODE ACTIVE — RESULTS ARE HYPOTHETICAL BASED ON RISK ADJUSTMENT
+                    </div>
+                )}
 
                 {/* Key Metrics - Grid Strip */}
                 <AnalyticsCards history={filteredLogs} session={session} />
