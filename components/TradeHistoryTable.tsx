@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import AnalyticsCards from './AnalyticsCards';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import EditTradeModal from './EditTradeModal';
+import TagsModal from './TagsModal';
 
 import { deleteLog as deleteLogAction } from '@/app/actions';
 
@@ -74,6 +75,7 @@ export default function TradeHistoryTable() {
         : 0;
 
     const [editTrade, setEditTrade] = React.useState<TradeLog | null>(null);
+    const [tagTrade, setTagTrade] = React.useState<TradeLog | null>(null);
 
     return (
         <div className="flex flex-col h-full bg-trade-bg">
@@ -142,6 +144,7 @@ export default function TradeHistoryTable() {
                                 <th className="px-4 py-2 font-medium w-20 text-center">Side</th>
                                 <th className="px-4 py-2 font-medium text-center w-24">Lots</th>
                                 <th className="px-4 py-2 font-medium text-center w-24">Entry</th>
+                                <th className="px-4 py-2 font-medium w-32">Tags</th>
                                 <th className="px-4 py-2 font-medium text-center w-16">R Gain</th>
                                 <th className="px-4 py-2 font-medium text-center w-16">% Gain</th>
                                 <th className="px-4 py-2 font-medium text-center w-16">Comm</th>
@@ -153,7 +156,7 @@ export default function TradeHistoryTable() {
                         <tbody className="divide-y divide-trade-border bg-trade-bg/50">
                             {sessionHistory.length === 0 ? (
                                 <tr>
-                                    <td colSpan={12} className="px-6 py-12 text-center">
+                                    <td colSpan={13} className="px-6 py-12 text-center">
                                         <div className="flex flex-col items-center justify-center gap-2 text-trade-text-muted">
                                             <History className="w-8 h-8 opacity-20" />
                                             <p className="text-sm">No trades executed.</p>
@@ -211,6 +214,28 @@ export default function TradeHistoryTable() {
                                                     <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">
                                                         {log.input.entryPrice}
                                                     </td>
+                                                    <td className="px-4 py-2 font-mono text-xs">
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {log.tags && log.tags.length > 0 ? (
+                                                                log.tags.map(tag => (
+                                                                    <span
+                                                                        key={tag}
+                                                                        onClick={(e) => { e.stopPropagation(); setTagTrade(log); }}
+                                                                        className="px-1.5 py-0.5 bg-trade-surface border border-trade-border rounded-[2px] text-[10px] text-trade-text-secondary hover:border-trade-primary hover:text-trade-primary cursor-pointer transition-colors"
+                                                                    >
+                                                                        {tag}
+                                                                    </span>
+                                                                ))
+                                                            ) : (
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); setTagTrade(log); }}
+                                                                    className="px-2 py-0.5 border border-dashed border-trade-border rounded-[2px] text-[10px] text-trade-text-muted hover:border-trade-primary hover:text-trade-primary transition-colors opacity-50 hover:opacity-100"
+                                                                >
+                                                                    + Add Tags
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
                                                     <td className="px-4 py-2 text-center font-mono font-medium">
                                                         <span className={cn(isProfit ? "text-trade-success" : "text-trade-loss")}>
                                                             {log.results.initialRiskAmount > 0
@@ -261,7 +286,7 @@ export default function TradeHistoryTable() {
                                                 {/* Expanded Details Row */}
                                                 {isExpanded && (
                                                     <tr className="bg-trade-surface/10 border-b border-trade-border/50">
-                                                        <td colSpan={12} className="p-0">
+                                                        <td colSpan={13} className="p-0">
                                                             <div className="p-4 bg-trade-bg/30 inner-shadow">
                                                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                                                     {/* Breakdown Table */}
@@ -363,6 +388,7 @@ export default function TradeHistoryTable() {
                                                 <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">-</td>
                                                 <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">-</td>
                                                 <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">-</td>
+                                                <td className="px-4 py-2 text-center font-mono text-trade-text-secondary">-</td>
                                                 <td className="px-4 py-2 text-center font-mono font-medium">
                                                     <span className={cn(isWithdrawal ? "text-trade-loss" : "text-trade-success")}>
                                                         {isWithdrawal ? '-' : '+'}{log.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -408,6 +434,12 @@ export default function TradeHistoryTable() {
                 isOpen={!!editTrade}
                 onClose={() => setEditTrade(null)}
                 trade={editTrade}
+            />
+
+            <TagsModal
+                isOpen={!!tagTrade}
+                onClose={() => setTagTrade(null)}
+                trade={tagTrade}
             />
         </div >
     );

@@ -65,6 +65,7 @@ export interface TradeLog extends BaseLog {
   results: CalculationResult;
   entryImage?: string; // URL of the uploaded entry screenshot
   exitImage?: string; // URL of the uploaded exit screenshot
+  tags?: string[]; // Array of tags for categorization
 }
 
 export interface TransferLog extends BaseLog {

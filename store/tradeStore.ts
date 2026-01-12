@@ -28,6 +28,7 @@ interface TradeStore {
     addTransaction: (type: 'WITHDRAWAL' | 'DEPOSIT', amount: number, note?: string) => void;
     deleteLog: (id: string) => void;
     updateLog: (log: TradeLog | TransferLog) => void;
+    updateTags: (tradeId: string, tags: string[]) => void;
     uploadTradeImage: (tradeId: string, type: 'entry' | 'exit', file: File) => Promise<string | undefined>;
     clearHistory: () => void; // Clears ONLY active session history
     initializeSession: (session: Session, history: HistoryLog[]) => void;
@@ -181,6 +182,7 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
                 type: 'TRADE',
                 input: { ...state.input }, // Deep copy
                 results: { ...state.results, exits: [...state.results.exits] }, // Deep copy
+                tags: [],
             };
 
             // Update the input balance for the NEXT trade automatically
@@ -258,6 +260,27 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
         // Persist to DB or API
         // This is handled by saveLog in the component usually, but we might want to ensure store sync
     },
+
+    updateTags: async (tradeId: string, tags: string[]) => {
+        const { history } = get();
+        const tradeLog = history.find((log) => log.id === tradeId) as TradeLog;
+        if (!tradeLog) return;
+
+        const updatedLog = { ...tradeLog, tags };
+
+        set((state) => ({
+            history: state.history.map((log) => (log.id === tradeId ? updatedLog : log)),
+        }));
+
+        // Persist change
+        try {
+            const { saveLog } = await import('@/app/actions');
+            await saveLog(updatedLog.sessionId, updatedLog);
+        } catch (error) {
+            console.error("Failed to save tags:", error);
+        }
+    },
+
     uploadTradeImage: async (tradeId: string, type: 'entry' | 'exit', file: File) => {
         const { history } = get();
         const tradeLog = history.find((log) => log.id === tradeId) as TradeLog;
