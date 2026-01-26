@@ -1,16 +1,19 @@
 import { AssetConfig, AssetType, CalculationResult, Exit, ExitResult, TradeInput } from '../types';
 
 export const ASSET_CONFIGS: Record<AssetType, AssetConfig> = {
-    EURUSD: { symbol: 'EURUSD', pipValue: 10, commission: 7 },
-    XAUUSD: { symbol: 'XAUUSD', pipValue: 10, commission: 7 },
+    EURUSD: { symbol: 'EURUSD', pipValue: 10, commission: 7, quoteCurrency: 'USD' },
+    XAUUSD: { symbol: 'XAUUSD', pipValue: 10, commission: 7, quoteCurrency: 'USD' },
+    USDCAD: { symbol: 'USDCAD', pipValue: 10, commission: 7, quoteCurrency: 'CAD' }, // Pip value is dynamic
 };
 
 // Multipliers to convert Price Difference to Pips
 // EURUSD: 1.0000 -> 1.0001 = 1 Pip (0.0001). 1 / 0.0001 = 10000
 // XAUUSD: 2000.00 -> 2000.10 = 1 Pip (0.10). 1 / 0.10 = 10
+// USDCAD: 1.3000 -> 1.3001 = 1 Pip (0.0001). 1 / 0.0001 = 10000
 export const PIP_MULTIPLIERS: Record<AssetType, number> = {
     EURUSD: 10000,
     XAUUSD: 10,
+    USDCAD: 10000,
 };
 
 export function calculateTrade(input: TradeInput, exits: Exit[]): CalculationResult {
@@ -32,9 +35,19 @@ export function calculateTrade(input: TradeInput, exits: Exit[]): CalculationRes
 
     // 3. Calculate Risk Per Lot
     // Basic Formula: Risk = (SL Pips * PipValue) + Commission
-    // Note: Commission is Round Turn per lot.
-    // If we lose, we pay the pip loss AND the commission.
-    const lossPerLot = (slPips * config.pipValue) + config.commission;
+
+    // Determine Pip Value
+    let pipValue = config.pipValue; // Default (e.g. $10 for EURUSD)
+
+    if (config.quoteCurrency === 'CAD') {
+        // Dynamic Pip Value for USD/CAD
+        // Formula: 10 / Rate
+        if (entryPrice > 0) {
+            pipValue = 10 / entryPrice;
+        }
+    }
+
+    const lossPerLot = (slPips * pipValue) + config.commission;
 
     // 4. Calculate Initial Lots
     // Lots = Risk Amount / Loss Per Lot
@@ -104,7 +117,32 @@ export function calculateTrade(input: TradeInput, exits: Exit[]): CalculationRes
         }
 
         // Gross Profit = Lots * Pips * PipValue
-        const grossProfit = lotsToClose * pipsCaptured * config.pipValue;
+        // We use the same pip value logic. 
+        // Note: Strictly speaking, profit pip value depends on Exit Price, but for estimation/standard, 
+        // using the entry price pip value or a re-calculated one is debatable. 
+        // Standard practice for PnL is usually (Exit - Entry) * Volume * ContractSize (which implies dynamic value of the quote currency).
+        // For USD accounts trading USDCAD: PnL (USD) = (PriceDiff / ExitPrice) * Volume * 100,000? 
+        // Or roughly: Pips * (10 / ExitPrice)?
+
+        // Let's use the pip value at the time of the trade (Entry) for risk, 
+        // BUT for PnL projection, it's safer to use the pip value at the Exit Price?
+        // Actually, for USDCAD (USD base), 1 Lot = 100,000 USD.
+        // Buy 1 Lot at 1.3000 -> Sold 130,000 CAD.
+        // Close at 1.3100 -> Buy back 130,000 CAD. Cost = 130,000 / 1.3100 = 99,236.64 USD.
+        // Profit = 100,000 - 99,236.64 = 763.36 USD.
+        // Pips = 100.
+        // Std Formula: Pips * (10 / ExitRate). 100 * (10 / 1.3100) = 100 * 7.633 = 763.3
+
+        // So for Profit calculation, we should use the EXIT price to determine pip value.
+        let profitPipValue = config.pipValue;
+        if (config.quoteCurrency === 'CAD' && exit.price) {
+            profitPipValue = 10 / exit.price;
+        } else if (config.quoteCurrency === 'CAD') {
+            // Fallback if no exit price (shouldn't happen here as exits have prices in this loop)
+            profitPipValue = 10 / entryPrice; // Estimation
+        }
+
+        const grossProfit = lotsToClose * pipsCaptured * profitPipValue;
 
         // Commission = Lots * CommissionPerLot
         const commission = lotsToClose * config.commission;

@@ -1,9 +1,10 @@
-export type AssetType = 'EURUSD' | 'XAUUSD';
+export type AssetType = 'EURUSD' | 'XAUUSD' | 'USDCAD';
 
 export interface AssetConfig {
   symbol: AssetType;
-  pipValue: number; // $ per lot (Standard)
+  pipValue: number; // $ per lot (Standard) - For USD quote pairs, this is fixed. For others, it's a baseline or placeholder.
   commission: number; // $ per lot (Round turn)
+  quoteCurrency?: string; // e.g., 'USD', 'CAD', 'JPY'
 }
 
 export interface Exit {
