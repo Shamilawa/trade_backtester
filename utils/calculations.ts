@@ -142,12 +142,14 @@ export function calculateTrade(input: TradeInput, exits: Exit[]): CalculationRes
             profitPipValue = 10 / entryPrice; // Estimation
         }
 
-        const grossProfit = lotsToClose * pipsCaptured * profitPipValue;
+        const grossProfitRaw = lotsToClose * pipsCaptured * profitPipValue;
+        const grossProfit = Number(grossProfitRaw.toFixed(2));
 
         // Commission = Lots * CommissionPerLot
-        const commission = lotsToClose * config.commission;
+        const commissionRaw = lotsToClose * config.commission;
+        const commission = Number(commissionRaw.toFixed(2));
 
-        const netProfit = grossProfit - commission;
+        const netProfit = Number((grossProfit - commission).toFixed(2));
 
         // Calculate remaining lots after this exit
         const remainingAfter = Math.max(0, currentLots - lotsToClose);
@@ -164,19 +166,24 @@ export function calculateTrade(input: TradeInput, exits: Exit[]): CalculationRes
             remainingLotsAfter: Number(remainingAfter.toFixed(2))
         });
 
+        // We sum the ROUNDED values to ensure consistency
         totalNetProfit += netProfit;
+
         currentLots -= lotsToClose;
 
         // Prevent negative lots floating point errors
         if (currentLots < 0) currentLots = 0;
     }
 
+    // Ensure total is strictly 2 decimal places (though summation of 2 decimals should be fine, float math safeguards)
+    totalNetProfit = Number(totalNetProfit.toFixed(2));
+
     return {
         initialRiskAmount: Number(initialRiskAmount.toFixed(2)),
         initialLots,
         slPips: Number(slPips.toFixed(1)), // Pips usually 1 decimal
         exits: exitResults,
-        totalNetProfit: Number(totalNetProfit.toFixed(2)),
+        totalNetProfit: totalNetProfit,
         remainingLots: Number(currentLots.toFixed(2)),
         finalAccountBalance: Number((accountBalance + totalNetProfit).toFixed(2))
     };

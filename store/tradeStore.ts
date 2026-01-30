@@ -50,6 +50,60 @@ const recalc = (input: TradeInput, exits: Exit[]): CalculationResult => {
     return calculateTrade(input, exits);
 };
 
+// Helper to completely recalculate history balances
+// Ensures that if a middle log is deleted/changed, all subsequent balances are fixed.
+const recalculateHistory = (history: HistoryLog[], initialBalance: number): HistoryLog[] => {
+    // 1. Sort to ensure chronological order
+    const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    let currentBalance = initialBalance;
+
+    const recalculated = sorted.map(log => {
+        if (log.type === 'TRADE') {
+            const profit = log.results.totalNetProfit;
+            const newFinalBalance = Number((currentBalance + profit).toFixed(2));
+
+            const updatedLog: TradeLog = {
+                ...log,
+                input: {
+                    ...log.input,
+                    accountBalance: Number(currentBalance.toFixed(2)) // Update start balance for record
+                },
+                results: {
+                    ...log.results,
+                    finalAccountBalance: newFinalBalance
+                }
+            };
+
+            currentBalance = newFinalBalance;
+            return updatedLog;
+        } else {
+            // Transfer
+            const amount = log.amount;
+            let newBalance = currentBalance;
+
+            if (log.type === 'WITHDRAWAL') {
+                newBalance -= amount;
+            } else {
+                newBalance += amount;
+            }
+
+            newBalance = Number(newBalance.toFixed(2));
+
+            const updatedLog: TransferLog = {
+                ...log,
+                newBalance: newBalance
+            };
+
+            currentBalance = newBalance;
+            return updatedLog;
+        }
+    });
+
+    // Store usually keeps it [Newest, ..., Oldest]
+    return recalculated.reverse();
+};
+
 export const useTradeStore = create<TradeStore>((set, get) => ({
     sessions: [],
     activeSessionId: null,
@@ -88,21 +142,17 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
 
             // Calculate current balance for this session based on its history
             const sessionTrades = state.history.filter(t => t.sessionId === id);
-            // Sort by date to get latest balance? 
-            // Actually, we can just sum profits to initial balance. 
-            // But relying on the last trade's final balance is safer if we store it.
-            // Let's re-calculate "current balance" from clean slate + history? 
-            // Or just take the last trade's final balance.
 
             let currentBalance = session.initialBalance;
-            if (sessionTrades.length > 0) {
-                // Sort by date descending (newest first) as stored in history usually
-                // Our history is [newest, ..., oldest]
-                // So index 0 is the latest trade.
-                const latestLog = sessionTrades[0];
+
+            // Recalculate to ensure consistency on load (optional but safe)
+            const rehashedHistory = recalculateHistory(sessionTrades, session.initialBalance);
+
+            if (rehashedHistory.length > 0) {
+                const latestLog = rehashedHistory[0];
                 if (latestLog.type === 'TRADE') {
                     currentBalance = latestLog.results.finalAccountBalance;
-                } else { // WITHDRAWAL or DEPOSIT
+                } else {
                     currentBalance = latestLog.newBalance;
                 }
             }
@@ -185,8 +235,16 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
                 tags: [],
             };
 
-            // Update the input balance for the NEXT trade automatically
-            const newBalance = state.results.finalAccountBalance;
+            const otherHistory = state.history.filter(h => h.sessionId !== state.activeSessionId);
+            const sessionHistory = state.history.filter(h => h.sessionId === state.activeSessionId);
+            const session = state.sessions.find(s => s.id === state.activeSessionId);
+
+            // Add new log -> then Recalculate everything
+            const updatedSessionHistory = recalculateHistory([newLog, ...sessionHistory], session?.initialBalance || 0);
+
+            // Get new balance for next trade
+            const latestLog = updatedSessionHistory[0];
+            const newBalance = latestLog.type === 'TRADE' ? latestLog.results.finalAccountBalance : latestLog.newBalance;
 
             // Reset trade-specific fields
             const nextInput = {
@@ -198,7 +256,7 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
             };
 
             return {
-                history: [newLog, ...state.history],
+                history: [...updatedSessionHistory, ...otherHistory],
                 input: nextInput,
                 exits: [], // Clear partial exits
                 results: recalc(nextInput, [])
@@ -210,29 +268,29 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
         set((state) => {
             if (!state.activeSessionId) return {};
 
-            // Calculate new balance
-            const currentBalance = state.input.accountBalance;
-            const newBalance = type === 'WITHDRAWAL'
-                ? currentBalance - amount
-                : currentBalance + amount;
-
-            // Prevent negative balance if withdrawal? (Optional, maybe allow margin call simulation)
-            // if (newBalance < 0) return {}; 
-
             const newLog: TransferLog = {
                 id: uuidv4(),
                 sessionId: state.activeSessionId,
                 date: new Date().toISOString(),
                 type: type,
                 amount: amount,
-                newBalance: newBalance,
+                newBalance: 0, // Will be calc'd
                 note: note
             };
+
+            const otherHistory = state.history.filter(h => h.sessionId !== state.activeSessionId);
+            const sessionHistory = state.history.filter(h => h.sessionId === state.activeSessionId);
+            const session = state.sessions.find(s => s.id === state.activeSessionId);
+
+            const updatedSessionHistory = recalculateHistory([newLog, ...sessionHistory], session?.initialBalance || 0);
+
+            const latestLog = updatedSessionHistory[0];
+            const newBalance = latestLog.type === 'TRADE' ? latestLog.results.finalAccountBalance : latestLog.newBalance;
 
             const nextInput = { ...state.input, accountBalance: newBalance };
 
             return {
-                history: [newLog, ...state.history],
+                history: [...updatedSessionHistory, ...otherHistory],
                 input: nextInput,
                 results: recalc(nextInput, state.exits)
             };
@@ -241,24 +299,58 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
 
     deleteLog: (id) => {
         set((state) => {
-            const newHistory = state.history.filter((log) => log.id !== id);
+            const logToDelete = state.history.find(l => l.id === id);
+            if (!logToDelete) return {};
 
-            // If we delete the latest trade, we might want to revert the balance? 
-            // For now, complex. Let's just delete the log. 
-            // The User might need to manually reset balance or we leave it.
-            // Ideally: Recalculate everything? Too heavy.
-            // Simple: Just delete.
+            const otherHistory = state.history.filter(h => h.sessionId !== logToDelete.sessionId);
+            const sessionHistory = state.history.filter(h => h.sessionId === logToDelete.sessionId && h.id !== id);
+            const session = state.sessions.find(s => s.id === logToDelete.sessionId);
 
-            return { history: newHistory };
+            const updatedSessionHistory = recalculateHistory(sessionHistory, session?.initialBalance || 0);
+
+            // If we deleted the last log, we need to update the input balance if it's the active session
+            let newBalance = session?.initialBalance || 0;
+            if (updatedSessionHistory.length > 0) {
+                const latest = updatedSessionHistory[0];
+                newBalance = latest.type === 'TRADE' ? latest.results.finalAccountBalance : latest.newBalance;
+            }
+
+            // Only update input if this was the active session
+            const inputUpdate = state.activeSessionId === logToDelete.sessionId
+                ? { input: { ...state.input, accountBalance: newBalance }, results: recalc({ ...state.input, accountBalance: newBalance }, state.exits) }
+                : {};
+
+            return {
+                history: [...updatedSessionHistory, ...otherHistory],
+                ...inputUpdate
+            };
         });
     },
 
     updateLog: (updatedLog: TradeLog | TransferLog) => {
-        set((state) => ({
-            history: state.history.map((log) => (log.id === updatedLog.id ? updatedLog : log)),
-        }));
-        // Persist to DB or API
-        // This is handled by saveLog in the component usually, but we might want to ensure store sync
+        set((state) => {
+            const otherHistory = state.history.filter(h => h.sessionId !== updatedLog.sessionId);
+            const sessionHistory = state.history.filter(h => h.sessionId === updatedLog.sessionId).map(l => l.id === updatedLog.id ? updatedLog : l);
+            const session = state.sessions.find(s => s.id === updatedLog.sessionId);
+
+            const updatedSessionHistory = recalculateHistory(sessionHistory, session?.initialBalance || 0);
+
+            // Update input balance if active session
+            let newBalance = session?.initialBalance || 0;
+            if (updatedSessionHistory.length > 0) {
+                const latest = updatedSessionHistory[0];
+                newBalance = latest.type === 'TRADE' ? latest.results.finalAccountBalance : latest.newBalance;
+            }
+
+            const inputUpdate = state.activeSessionId === updatedLog.sessionId
+                ? { input: { ...state.input, accountBalance: newBalance }, results: recalc({ ...state.input, accountBalance: newBalance }, state.exits) }
+                : {};
+
+            return {
+                history: [...updatedSessionHistory, ...otherHistory],
+                ...inputUpdate
+            };
+        });
     },
 
     updateTags: async (tradeId: string, tags: string[]) => {
@@ -293,10 +385,7 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
             const formData = new FormData();
             formData.append('file', file);
 
-            // Dynamic import to avoid server-side issues in store if used inappropriately, 
-            // though store is client-side usually. 
-            // Better to pass the action result or handle in component?
-            // Let's import the action directly at top of file, assuming valid in Next.js environment
+            // Dynamic import to avoid server-side issues
             const { uploadImage } = await import('@/app/actions/upload');
             const url = await uploadImage(formData);
 
@@ -324,13 +413,13 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
 
     initializeSession: (session, history) => {
         set(state => {
-            // Check if we already have this session active to avoid re-initializing unnecessarily if simpler
-            // But usually we just overwrite.
+            // Calculate current balance from history
+            // Use recalculateHistory to ensure consistency on load
+            const rehashedHistory = recalculateHistory(history, session.initialBalance);
 
-            // Calculate current balance from history (latest log)
             let currentBalance = session.initialBalance;
-            if (history.length > 0) {
-                const latestLog = history[0]; // Assuming history is passed sorted desc
+            if (rehashedHistory.length > 0) {
+                const latestLog = rehashedHistory[0]; // Assuming history is passed sorted desc by recalculateHistory
                 if (latestLog.type === 'TRADE') {
                     currentBalance = latestLog.results.finalAccountBalance;
                 } else {
@@ -350,14 +439,9 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
             return {
                 sessions: newSessions,
                 activeSessionId: session.id,
-                // Wait, if we have other sessions' history in state.history, we should keep them?
-                // The store seems to keep ALL history in one array? 
-                // Line 15: "history: HistoryLog[]; // Contains ALL trades"
-                // So we should merge or filter?
-                // "filter(t => t.sessionId !== session.id)" then add new history.
                 history: [
                     ...state.history.filter(h => h.sessionId !== session.id),
-                    ...history
+                    ...rehashedHistory
                 ],
                 input: { ...state.input, accountBalance: currentBalance }, // Reset input balance
                 results: recalc({ ...state.input, accountBalance: currentBalance }, [])
