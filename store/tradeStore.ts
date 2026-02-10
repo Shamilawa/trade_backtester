@@ -228,7 +228,7 @@ export const useTradeStore = create<TradeStore>((set, get) => ({
             const newLog: TradeLog = {
                 id: uuidv4(),
                 sessionId: state.activeSessionId,
-                date: state.input.date,
+                date: state.input.date || new Date().toISOString(),
                 type: 'TRADE',
                 input: { ...state.input }, // Deep copy
                 results: { ...state.results, exits: [...state.results.exits] }, // Deep copy

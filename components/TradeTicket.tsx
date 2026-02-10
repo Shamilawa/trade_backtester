@@ -25,7 +25,8 @@ export default function TradeTicket() {
     const isValidLots = results ? results.initialLots > 0 : false;
 
     // Combined Validation
-    const isFormValid = isValidEntry && isValidSL && isValidRisk && isDirectionValid && isValidLots && isValidDate;
+    // Combined Validation
+    const isFormValid = isValidEntry && isValidSL && isValidRisk && isDirectionValid && isValidLots;
 
     const handleLogTrade = async () => {
         setHasSubmitted(true);
@@ -78,9 +79,7 @@ export default function TradeTicket() {
                                 className={cn(
                                     "bg-transparent text-xs font-mono focus:outline-none cursor-pointer w-[140px] transition-colors",
                                     input.date ? "text-trade-text-primary h-full" : "text-trade-text-muted",
-                                    (hasSubmitted && !isValidDate) && "text-trade-loss"
                                 )}
-                                required
                             />
                         </div>
                     </div>
@@ -210,6 +209,18 @@ export default function TradeTicket() {
                             <div className="flex justify-between p-2 bg-trade-surface/30 rounded border border-trade-border/50">
                                 <span className="text-trade-text-muted">SL Pips</span>
                                 <span className="font-mono text-trade-text-primary font-medium">{results.slPips.toFixed(1)}</span>
+                            </div>
+                            <div className="col-span-2 flex justify-between p-2 bg-trade-surface/30 rounded border border-trade-border/50">
+                                <span className="text-trade-text-muted">Projected P&L</span>
+                                <span className={cn(
+                                    "font-mono font-bold",
+                                    results.totalNetProfit >= 0 ? "text-trade-success" : "text-trade-loss"
+                                )}>
+                                    {results.totalNetProfit >= 0 ? '+' : ''}${results.totalNetProfit.toFixed(2)}
+                                    <span className="opacity-70 text-[0.9em] ml-1">
+                                        ({(input.accountBalance > 0 ? ((results.totalNetProfit / input.accountBalance) * 100) : 0).toFixed(2)}%)
+                                    </span>
+                                </span>
                             </div>
                         </div>
                     )}
