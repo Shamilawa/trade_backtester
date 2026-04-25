@@ -4,6 +4,7 @@ export const ASSET_CONFIGS: Record<AssetType, AssetConfig> = {
     EURUSD: { symbol: 'EURUSD', pipValue: 10, commission: 7, quoteCurrency: 'USD' },
     XAUUSD: { symbol: 'XAUUSD', pipValue: 10, commission: 7, quoteCurrency: 'USD' },
     USDCAD: { symbol: 'USDCAD', pipValue: 10, commission: 7, quoteCurrency: 'CAD' }, // Pip value is dynamic
+    AUDJPY: { symbol: 'AUDJPY', pipValue: 10, commission: 7, quoteCurrency: 'JPY' }, // Default baseline for JPY crosses
 };
 
 // Multipliers to convert Price Difference to Pips
@@ -14,6 +15,7 @@ export const PIP_MULTIPLIERS: Record<AssetType, number> = {
     EURUSD: 10000,
     XAUUSD: 10,
     USDCAD: 10000,
+    AUDJPY: 100, // For JPY pairs, 1 pip is 0.01
 };
 
 export function calculateTrade(input: TradeInput, exits: Exit[]): CalculationResult {
@@ -45,6 +47,11 @@ export function calculateTrade(input: TradeInput, exits: Exit[]): CalculationRes
         if (entryPrice > 0) {
             pipValue = 10 / entryPrice;
         }
+    } else if (config.quoteCurrency === 'JPY') {
+        // Fixed average estimate for USD/JPY rate (e.g., 150.00)
+        // 1000 JPY / 150.00 = 6.666... USD per standard lot
+        const assumedUsdJpyRate = 150.00;
+        pipValue = 1000 / assumedUsdJpyRate;
     }
 
     const lossPerLot = (slPips * pipValue) + config.commission;
@@ -140,6 +147,9 @@ export function calculateTrade(input: TradeInput, exits: Exit[]): CalculationRes
         } else if (config.quoteCurrency === 'CAD') {
             // Fallback if no exit price (shouldn't happen here as exits have prices in this loop)
             profitPipValue = 10 / entryPrice; // Estimation
+        } else if (config.quoteCurrency === 'JPY') {
+            const assumedUsdJpyRate = 150.00;
+            profitPipValue = 1000 / assumedUsdJpyRate;
         }
 
         const grossProfitRaw = lotsToClose * pipsCaptured * profitPipValue;

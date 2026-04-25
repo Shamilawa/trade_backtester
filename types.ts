@@ -1,4 +1,4 @@
-export type AssetType = 'EURUSD' | 'XAUUSD' | 'USDCAD';
+export type AssetType = 'EURUSD' | 'XAUUSD' | 'USDCAD' | 'AUDJPY';
 
 export interface AssetConfig {
   symbol: AssetType;
